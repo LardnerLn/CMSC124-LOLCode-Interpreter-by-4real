@@ -1,5 +1,6 @@
 import re
 
+# Lexemes classifiers (all are based on submitted project requirement 1)
 LITERALS = [
     ("YARN",   re.compile(r'^"(:[)>o":]|[^":])*"$')),
     ("NUMBAR", re.compile(r'^-?[0-9]+\.[0-9]+$')),
@@ -21,5 +22,9 @@ KEYWORDS = [
     "IM OUTTA YR", "HOW IZ I", "IF U SAY SO", "GTFO", "FOUND YR", 
     "I IZ", "MKAY"
 ]
+
+# build a regex per keyword exactly like the table: ^KEYWORD$ (escaped for ? )
+# re.escape() takes a string and puts a backslash in front of any character that has a special meaning in regex
+KEYWORD_REGEX = [(word, re.compile("^" + re.escape(word) + "$")) for word in KEYWORDS]
 
 IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
