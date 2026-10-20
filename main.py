@@ -52,6 +52,52 @@ def classify(lexeme):
     return ("INVALID", None)
 
 
-# test cases, you may delete this
-for s in ['HAI', 'WAZZUP', '42', '-3.14', '"hello"', 'WIN', 'NOOB', 'I HAS A', 'x_1', '9abc']:
-    print(f"{s} -> {classify(s)}")
+# # test cases, you may delete this
+# for s in ['HAI', 'WAZZUP', '42', '-3.14', '"hello"', 'WIN', 'NOOB', 'I HAS A', 'x_1', '9abc']:
+#     print(f"{s} -> {classify(s)}")
+
+
+#Ayen [File Reader]
+# Read the file and return its lines
+def read_file(filename):
+    lines = []
+
+    file = open(filename, "r")
+
+    for line in file:
+        lines.append(line.rstrip("\n"))
+
+    file.close()
+
+    return lines
+
+
+# Test the file reader
+lines = read_file("sample.lol")
+
+line_number = 1
+
+for line in lines:
+    print("Line", line_number, ":", line)
+    line_number = line_number + 1
+
+
+#Member 3 [Tokenizer]
+#splits each lines into tokens
+#tokenize(line)
+
+
+#Member 4 [Lexeme Extraction & integration]
+#Combines tokens into complete lexemes and integrates the functions.
+#read_lexemes(line)
+
+# [Ayen] for output format
+def print_token_table(tokens):
+    print("\n" + "=" * 50)
+    print(f"{'Line':<6} | {'Lexeme':<22} | {'Category':<18}")
+    print("=" * 50)
+    
+    for line_num, lexeme, category in tokens:
+        print(f"{str(line_num):<6} | {str(lexeme):<22} | {str(category):<18}")
+        
+    print("=" * 50 + "\n")
