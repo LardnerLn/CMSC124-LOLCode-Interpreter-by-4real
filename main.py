@@ -50,3 +50,8 @@ def classify(lexeme):
 
     # else invalid
     return ("INVALID", None)
+
+
+# test cases, you may delete this
+for s in ['HAI', 'WAZZUP', '42', '-3.14', '"hello"', 'WIN', 'NOOB', 'I HAS A', 'x_1', '9abc']:
+    print(f"{s} -> {classify(s)}")
