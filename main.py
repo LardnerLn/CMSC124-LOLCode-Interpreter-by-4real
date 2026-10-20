@@ -1,35 +1,25 @@
-import lexer
+import re
 
-def main():
-    sample_file_path = "sample.lol"
+LITERALS = [
+    ("YARN",   re.compile(r'^"(:[)>o":]|[^":])*"$')),
+    ("NUMBAR", re.compile(r'^-?[0-9]+\.[0-9]+$')),
+    ("NUMBR",  re.compile(r'^-?[0-9]+$')),
+    ("TROOF",  re.compile(r'^(WIN|FAIL)$')),
+    ("TYPE",   re.compile(r'^(NOOB|NUMBR|NUMBAR|YARN|TROOF)$')),
+]
 
-    # Open and read the file directly
-    with open(sample_file_path, "r", encoding = "utf-8") as f:
-        source_code = f.read()
+KEYWORDS = [
+    "HAI", "KTHXBYE", "WAZZUP", "BUHBYE", "BTW", 
+    "OBTW", "TLDR", "I HAS A", "ITZ", "R", 
+    "SUM OF", "DIFF OF", "PRODUKT OF", "QUOSHUNT OF", "MOD OF", 
+    "BIGGR OF", "SMALLR OF", "BOTH OF", "EITHER OF", "WON OF", 
+    "NOT", "ANY OF", "ALL OF", "BOTH SAEM", "DIFFRINT", 
+    "SMOOSH", "MAEK", "A", "IS NOW A", "VISIBLE", 
+    "GIMMEH", "O RLY?", "YA RLY", "MEBBE", "NO WAI", 
+    "OIC", "WTF?", "OMG", "OMGWTF", "IM IN YR", 
+    "UPPIN", "NERFIN", "YR", "TIL", "WILE", 
+    "IM OUTTA YR", "HOW IZ I", "IF U SAY SO", "GTFO", "FOUND YR", 
+    "I IZ", "MKAY"
+]
 
-    # Run lexical analysis
-    tokens, errors, _ = lexer.tokenize(source_code)
-
-    # Display detected tokens in a formatted table
-    print("-" * 60)
-    print(f"{'LEXEME':<30} | {'TOKEN CLASSIFICATION'}")
-    print("-" * 60)
-    
-    for token_type, lexeme in tokens:
-    
-        print(f"{lexeme:<30} | {token_type}")
-    
-    print("-" * 60)
-
-    # Display diagnostics / errors
-    print("\n[LEXICAL DIAGNOSTICS]")
-    
-    if errors:
-    
-        for error in errors:
-            print(f"  - {error}")
-    else:
-        print("  Lexical Analysis Successful: No errors found.")
-
-
-main()
+IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
