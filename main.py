@@ -28,3 +28,25 @@ KEYWORDS = [
 KEYWORD_REGEX = [(word, re.compile("^" + re.escape(word) + "$")) for word in KEYWORDS]
 
 IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
+
+
+KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
+
+# Function that determines if the string input belongs to literal, keyword, or identifier
+def classify(lexeme):
+    # check if it's a literal
+    for name, regex in LITERALS:
+        if regex.match(lexeme):
+            return ("LITERAL", name)
+
+    # check if it's a keyword
+    for word, regex in KEYWORD_REGEX:
+        if regex.match(lexeme):
+            return ("KEYWORD", word)
+
+    # check if it's an identifier
+    if IDENTIFIER.match(lexeme):
+        return ("IDENTIFIER", None)
+
+    # else invalid
+    return ("INVALID", None)
