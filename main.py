@@ -32,6 +32,7 @@ IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
 
 KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 
+# =======================================================
 # Function that determines if the string input belongs to literal, keyword, or identifier
 def classify(lexeme):
     # check if it's a literal
@@ -56,7 +57,7 @@ def classify(lexeme):
 # for s in ['HAI', 'WAZZUP', '42', '-3.14', '"hello"', 'WIN', 'NOOB', 'I HAS A', 'x_1', '9abc']:
 #     print(f"{s} -> {classify(s)}")
 
-
+# =======================================================
 # Ayen [File Reader]
 # Read the file and return its lines
 def read_file(filename):
@@ -81,7 +82,7 @@ for line in lines:
     print("Line", line_number, ":", line)
     line_number = line_number + 1
 
-
+# =======================================================
 #Member 3 [Tokenizer]
 #splits each lines into tokens
 #tokenize(line)
@@ -185,7 +186,7 @@ def tokenize(line):
         
     return tokens
 
-
+# =======================================================
 # tokenize sample.lol line by line
 def tokenize_file(filename):
     
@@ -216,13 +217,14 @@ def tokenize_file(filename):
 # Run tokenization on sample.lol
 tokens_by_line = tokenize_file("sample.lol")
 
-
-#Member 4 [Lexeme Extraction & integration]
+# =======================================================
+# [Nailah] [Lexeme Extraction & integration]
 #Combines tokens into complete lexemes and integrates the functions.
 #read_lexemes(line)
+def 
 
 
-
+# =======================================================
 # [Ayen] for output format
 def print_token_table(tokens):
     print("\n" + "=" * 50)
