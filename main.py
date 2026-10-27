@@ -9,19 +9,27 @@ LITERALS = [
     ("TYPE",   re.compile(r'^(NOOB|NUMBR|NUMBAR|YARN|TROOF)$')),
 ]
 
-KEYWORDS = [
-    "HAI", "KTHXBYE", "WAZZUP", "BUHBYE", "BTW", 
-    "OBTW", "TLDR", "I HAS A", "ITZ", "R", 
-    "SUM OF", "DIFF OF", "PRODUKT OF", "QUOSHUNT OF", "MOD OF", 
-    "BIGGR OF", "SMALLR OF", "BOTH OF", "EITHER OF", "WON OF", 
-    "NOT", "ANY OF", "ALL OF", "BOTH SAEM", "DIFFRINT", 
-    "SMOOSH", "MAEK", "A", "IS NOW A", "VISIBLE", 
-    "GIMMEH", "O RLY?", "YA RLY", "MEBBE", "NO WAI", 
-    "OIC", "WTF?", "OMG", "OMGWTF", "IM IN YR", 
-    "UPPIN", "NERFIN", "YR", "TIL", "WILE", 
-    "IM OUTTA YR", "HOW IZ I", "IF U SAY SO", "GTFO", "FOUND YR", 
-    "I IZ", "MKAY", "AN"
-]
+# Dictionary for categ
+KEYWORD_CATEGORIES = {
+    "Start Code": ["HAI"],
+    "End Code": ["KTHXBYE"],
+    "Data Type": ["NUMBR", "NUMBAR", "YARN", "TROOF", "NOOB"],
+    "Variable Statement": ["WAZZUP", "BUHBYE", "I HAS A", "ITZ", "R"],
+    "I/O Statement": ["VISIBLE", "GIMMEH"],
+    "Arithmetic Operator": ["SUM OF", "DIFF OF", "PRODUKT OF", "QUOSHUNT OF", "MOD OF", "BIGGR OF", "SMALLR OF"],
+    "Logical/Comparison Operator": ["BOTH OF", "EITHER OF", "WON OF", "NOT", "ALL OF", "ANY OF", "BOTH SAEM", "DIFFRINT"],
+    "String/Typecast Operator": ["SMOOSH", "MAEK", "A", "IS NOW A"],
+    "Conditional/Control Statement": ["O RLY?", "YA RLY", "MEBBE", "NO WAI", "OIC", "WTF?", "OMG", "OMGWTF", "GTFO"],
+    "Loop Statement": ["IM IN YR", "IM OUTTA YR", "UPPIN", "NERFIN", "YR", "TIL", "WILE"],
+    "Function Statement": ["HOW IZ I", "IF U SAY SO", "FOUND YR", "I IZ"],
+}
+
+# get keywords from dictionary 
+
+KEYWORDS = []
+for words in KEYWORD_CATEGORIES.values():
+    KEYWORDS.extend(words)
+KEYWORDS.extend(["BTW", "OBTW", "TLDR", "MKAY", "AN"])
 
 # build a regex per keyword exactly like the table: ^KEYWORD$ (escaped for ? )
 # re.escape() takes a string and puts a backslash in front of any character that has a special meaning in regex
@@ -39,10 +47,15 @@ def classify(lexeme):
         if regex.match(lexeme):
             return ("LITERAL", name)
 
-    # check if it's a keyword
+    # check if it's a keyword 
     for word, regex in KEYWORD_REGEX:
-        if regex.match(lexeme):
-            return ("KEYWORD", word)
+        if regex.match(lexeme.upper()):
+            # find the category of keywords
+            for category, words in KEYWORD_CATEGORIES.items():
+                if word in words:
+                    return ("KEYWORD", category)
+          
+            return ("KEYWORD", "Keyword")
 
     # check if it's an identifier
     if IDENTIFIER.match(lexeme):
@@ -186,6 +199,7 @@ def tokenize_file(filename):
 # Nailah [Lexeme extraction]
 # Reads, tokenizes, classifies every token (category or keyword), and structures the lexemes
 # =======================================================
+
 def read_lexemes(filename):
     # Tokenize the input source file line by line
     tokenized_program = tokenize_file(filename)
@@ -194,16 +208,20 @@ def read_lexemes(filename):
     # Iterate through each line number and its corresponding tokens
     for line_number, line_tokens in tokenized_program:
         for token in line_tokens:
-            # classify() returns a tuple of (category, sub_type)
+           
             category, sub_type = classify(token)
 
-            # Give the real category
-            display_category = category
+            # fix display categ
+            if category == "KEYWORD":
+                display_category = sub_type  
+            elif category == "LITERAL":
+                display_category = f"Literal ({sub_type})" 
+            else:
+                display_category = category
 
             classified_tokens.append((line_number, token, display_category))
 
     return classified_tokens
-
 # =======================================================
 # Ayen [Output format]
 def print_token_table(tokens):
