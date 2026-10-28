@@ -45,7 +45,7 @@ def classify(lexeme):
     # check if it's a literal
     for name, regex in LITERALS:
         if regex.match(lexeme):
-            return ("LITERAL", name)
+            return ("Literal", name)
 
     # check if it's a keyword 
     for word, regex in KEYWORD_REGEX:
@@ -59,7 +59,7 @@ def classify(lexeme):
 
     # check if it's an identifier
     if IDENTIFIER.match(lexeme):
-        return ("IDENTIFIER", None)
+        return ("Identifier", None)
 
     # else invalid
     return ("INVALID", None)
