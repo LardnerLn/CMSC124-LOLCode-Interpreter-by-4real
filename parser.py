@@ -20,13 +20,22 @@ def current_token():
 def peek_lexeme():
     #Returns the text (lexeme) of the current token
     token = current_token()
-    return token[1] if token else None
+    if token:
+        return token[1]
+    
+    else:
+        None
 
 
 def peek_category():
     #Returns the classification category of the current token
     token = current_token()
-    return token[2] if token else None
+    
+    if token:
+        return token[2]
+    
+    else:
+        None
 
 
 def advance():
@@ -34,6 +43,7 @@ def advance():
     global pos
     token = current_token()
     pos += 1
+    
     return token
 
 
@@ -42,7 +52,9 @@ def match(expected_lexeme):
     token = current_token()
     if token and token[1] == expected_lexeme:
         advance()
+    
         return token
+    
     return None
 
 
