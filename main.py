@@ -1,18 +1,24 @@
-# main.py
-import lexer
-# import parser 
+from lexer import read_lexemes, print_token_table
+from parser import parse, SyntaxErrorLOL
 
-def main():
-    filename = "sample.lol"
-    
-    print(f"Running lexical analysis on {filename}...")
-    
-    # run lexer to extract and classify lexemes
-    all_lexemes = lexer.read_lexemes(filename)
-    
-    # print the token table
-    lexer.print_token_table(all_lexemes)
-    
-    # insert parser call
 
-    main()
+def run_interpreter(filename):
+    print(f"\n--- Loading and Lexing: {filename} ---")
+
+    # Phase 1: Lexical Analysis
+    tokens = read_lexemes(filename)
+    print_token_table(tokens)
+
+    # Phase 2: Syntax Analysis
+    print("--- Starting Syntax Analysis (Parser) ---")
+
+    try:
+        if parse(tokens):
+            print("SUCCESS: Program is syntactically valid!")
+    
+    except SyntaxErrorLOL as e:
+        print(f"\nFAILED: {e}")
+
+
+
+run_interpreter("sample.lol")
