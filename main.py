@@ -19,6 +19,6 @@ def run_interpreter(filename):
     except SyntaxErrorLOL as e:
         print(f"\nFAILED: {e}")
 
+run_interpreter("ownsample.lol")
 
-
-run_interpreter("sample.lol")
+# run_interpreter("sample.lol")
