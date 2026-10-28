@@ -10,6 +10,7 @@ LITERALS = [
 ]
 
 # Dictionary for categ
+# Dictionary for categ
 KEYWORD_CATEGORIES = {
     "Start Code": ["HAI"],
     "End Code": ["KTHXBYE"],
@@ -17,7 +18,8 @@ KEYWORD_CATEGORIES = {
     "Variable Statement": ["WAZZUP", "BUHBYE", "I HAS A", "ITZ", "R"],
     "I/O Statement": ["VISIBLE", "GIMMEH"],
     "Arithmetic Operator": ["SUM OF", "DIFF OF", "PRODUKT OF", "QUOSHUNT OF", "MOD OF", "BIGGR OF", "SMALLR OF"],
-    "Logical/Comparison Operator": ["BOTH OF", "EITHER OF", "WON OF", "NOT", "ALL OF", "ANY OF", "BOTH SAEM", "DIFFRINT"],
+    "Logical Operator": ["BOTH OF", "EITHER OF", "WON OF", "NOT", "ALL OF", "ANY OF"],
+    "Comparison Operator": ["BOTH SAEM", "DIFFRINT"],
     "String/Typecast Operator": ["SMOOSH", "MAEK", "A", "IS NOW A"],
     "Conditional/Control Statement": ["O RLY?", "YA RLY", "MEBBE", "NO WAI", "OIC", "WTF?", "OMG", "OMGWTF", "GTFO"],
     "Loop Statement": ["IM IN YR", "IM OUTTA YR", "UPPIN", "NERFIN", "YR", "TIL", "WILE"],
