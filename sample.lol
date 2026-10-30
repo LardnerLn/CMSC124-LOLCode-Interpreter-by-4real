@@ -1,25 +1,29 @@
 HAI
-WAZZUP
-  I HAS A count ITZ 10
-  I HAS A total ITZ -5.5
-  I HAS A msg ITZ "Hello  World! BTW inside"
-BUHBYE
+    WAZZUP
+        I HAS A monde
+        I HAS A num ITZ 17
+        I HAS A name ITZ "seventeen"
+        I HAS A fnum ITZ 17.0
+        I HAS A flag ITZ WIN
+        
+        I HAS A sum ITZ SUM OF num AN 13
+        I HAS A diff ITZ DIFF OF sum AN 17
+        I HAS A prod ITZ PRODUKT OF 3 AN 4
+        I HAS A quo ITZ QUOSHUNT OF 4 AN 5
+    BUHBYE
 
-BTW Inline comment test
-OBTW
-  Multiline comment block
-TLDR
+    VISIBLE "declarations"
+    VISIBLE monde
+    VISIBLE num
+    VISIBLE name
+    VISIBLE fnum
+    VISIBLE flag
 
-SUM OF count AN 20
-BOTH SAEM total AN SMALLR OF total AN 0
-VISIBLE msg + " LOL"
+    VISIBLE sum
+    VISIBLE diff
+    VISIBLE prod
+    VISIBLE quo
 
-IM IN YR loop_label UPPIN YR count WILE DIFFRINT count AN 20
-  VISIBLE count
-IM OUTTA YR loop_label
-
-HOW IZ I add_func YR x AN YR y
-  FOUND YR SUM OF x AN y
-IF U SAY SO
-
+    VISIBLE SUM OF PRODUKT OF 3 AN 5 AN BIGGR OF DIFF OF 17 AN 2 AN 5
+    VISIBLE BIGGR OF PRODUKT OF 11 AN 2 AN QUOSHUNT OF SUM OF 3 AN 5 AN 2
 KTHXBYE
