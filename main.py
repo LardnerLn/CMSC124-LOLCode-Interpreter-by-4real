@@ -19,11 +19,11 @@ def run_interpreter(filename):
             print("SUCCESS: Program is syntactically valid!")
 
         # Semantic Execution & Symbol Table
-        interp = Interpreter(tokens)
-        interp.interpret()
+        # interp = Interpreter(tokens)
+        # interp.interpret()
         
         # Print the final symbol table state
-        interp.table.print_table()
+        # interp.table.print_table()
     
     except SyntaxErrorLOL as e:
         print(f"\nFAILED: {e}")

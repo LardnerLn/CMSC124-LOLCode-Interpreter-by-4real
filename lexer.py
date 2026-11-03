@@ -127,19 +127,32 @@ def tokenize_code(lines):
     #Tokenizes lines of code and filters out comments
     tokenized_program = []
     multiline_comment = False
+    
+    TLDR_REGEX = re.compile(r'(?<!\S)TLDR(?!\S)')
 
     for line_number, raw_line in enumerate(lines, 1):
         stripped_line = raw_line.strip()
         if not stripped_line:
             continue
 
-        if stripped_line == "OBTW":
-            multiline_comment = True
+        # Inside OBTW <text> TLDR: skip everything until a line containing TLDR
+        if multiline_comment:
+            match = TLDR_REGEX.search(stripped_line)
+            if match:
+                multiline_comment = False
+                line_tokens = ["TLDR"] + tokenize(stripped_line[match.end():])
+                tokenized_program.append((line_number, line_tokens))
             continue
-        elif stripped_line == "TLDR":
-            multiline_comment = False
-            continue
-        elif multiline_comment:
+ 
+        # OBTW at the start of a line (comment may close on the same line)
+        if stripped_line.split()[0] == "OBTW":
+            line_tokens = ["OBTW"]
+            match = TLDR_REGEX.search(stripped_line)
+            if match:
+                line_tokens += ["TLDR"] + tokenize(stripped_line[match.end():])
+            else:
+                multiline_comment = True
+            tokenized_program.append((line_number, line_tokens))
             continue
 
         line_tokens = tokenize(raw_line)

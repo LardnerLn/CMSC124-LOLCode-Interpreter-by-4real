@@ -1,4 +1,5 @@
 HAI
+    BTW start of the program
     WAZZUP
         I HAS A monde
         I HAS A num ITZ 17
@@ -11,7 +12,7 @@ HAI
         I HAS A prod ITZ PRODUKT OF 3 AN 4
         I HAS A quo ITZ QUOSHUNT OF 4 AN 5
     BUHBYE
-
+    OBTW rararawr TLDR
     VISIBLE "declarations"
     VISIBLE monde
     VISIBLE num
