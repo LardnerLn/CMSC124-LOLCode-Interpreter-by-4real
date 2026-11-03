@@ -10,6 +10,7 @@ pos = 0
 # Helper functions for token stream navigation
 def current_token():
     #Returns the token tuple at the current position, or None if at end of file
+    parse_comments()
     if pos < len(tokens):
         return tokens[pos]
     return None
@@ -193,6 +194,30 @@ def parse_gimmeh():
         line = curr[0] if curr else "EOF"
         raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'GIMMEH' requires a variable identifier.")
     advance()
+
+# =========================================================
+def parse_comments():
+    #<comment> ::= BTW | OBTW TLDR  
+    #Skips valid comments at the current position, raises SyntaxErrorLOL if misordered
+    global pos
+    while pos < len(tokens):
+        line, lexeme, _ = tokens[pos]
+ 
+        if lexeme == "BTW":
+            pos += 1
+ 
+        elif lexeme == "OBTW":
+            pos += 1
+            if pos < len(tokens) and tokens[pos][1] == "TLDR":
+                pos += 1
+            else:
+                raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'OBTW' has no closing 'TLDR'.")
+ 
+        elif lexeme == "TLDR":
+            raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'TLDR' found without a matching 'OBTW'.")
+ 
+        else:
+            break
 
 # =========================================================
 def parse_expression():
