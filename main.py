@@ -1,5 +1,5 @@
 from lexer import read_lexemes, print_token_table
-from parser import parse, SyntaxErrorLOL
+from parser import parse, print_tree, SyntaxErrorLOL
 from interpreter import Interpreter
 
 
@@ -15,8 +15,12 @@ def run_interpreter(filename):
 
     try:
         # Syntax check using parser
-        if parse(tokens):
-            print("SUCCESS: Program is syntactically valid!")
+        # tree = parse(tokens)
+        parse(tokens)
+        print("SUCCESS: Program is syntactically valid!")
+
+        # print("\n--- Parse Tree ---")
+        # print_tree(tree)
 
         # Semantic Execution & Symbol Table
         # interp = Interpreter(tokens)
