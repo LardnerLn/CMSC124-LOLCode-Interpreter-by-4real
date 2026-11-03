@@ -135,9 +135,11 @@ def tokenize_code(lines):
 
         if stripped_line == "OBTW":
             multiline_comment = True
+            tokenized_program.append((line_number, ["OBTW"]))
             continue
         elif stripped_line == "TLDR":
             multiline_comment = False
+            tokenized_program.append((line_number, ["TLDR"]))
             continue
         elif multiline_comment:
             continue
