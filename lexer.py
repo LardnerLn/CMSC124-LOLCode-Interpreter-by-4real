@@ -34,7 +34,7 @@ KEYWORD_REGEX = [(word, re.compile("^" + re.escape(word) + "$")) for word in KEY
 IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
 KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 
-
+# =========================================================
 def classify(lexeme):
     #Classifies a lexeme as a Literal, Keyword, or Identifier
     for name, regex in LITERALS:
@@ -53,7 +53,7 @@ def classify(lexeme):
 
     return ("INVALID", None)
 
-
+# =========================================================
 def read_file(filename):
     #Reads source lines from a file
     lines = []
@@ -62,7 +62,7 @@ def read_file(filename):
             lines.append(line.rstrip("\n"))
     return lines
 
-
+# =========================================================
 def tokenize(line):
     #Splits a single line into token strings
     tokens = []
@@ -122,7 +122,7 @@ def tokenize(line):
 
     return tokens
 
-
+# =========================================================
 def tokenize_code(lines):
     #Tokenizes lines of code and filters out comments
     tokenized_program = []
@@ -148,7 +148,7 @@ def tokenize_code(lines):
 
     return tokenized_program
 
-
+# =========================================================
 def read_lexemes(filename):
     #Tokenizes and classifies lexemes from a file
     lines = read_file(filename)
@@ -169,7 +169,7 @@ def read_lexemes(filename):
 
     return classified_tokens
 
-
+# =========================================================
 def print_token_table(tokens):
     #Displays formatted token table
     print("\n" + "=" * 55)

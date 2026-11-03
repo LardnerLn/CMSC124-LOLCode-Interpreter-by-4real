@@ -12,24 +12,29 @@ class Interpreter:
         self.table = SymbolTable()
         self.should_gtfo = False
 
+    # ===========================================
     def current_token(self):
         if self.pos < len(self.tokens):
             return self.tokens[self.pos]
         return None
 
+    # ===========================================
     def peek_lexeme(self):
         token = self.current_token()
         return token[1] if token else None
 
+    # ===========================================
     def peek_category(self):
         token = self.current_token()
         return token[2] if token else None
 
+    # ===========================================
     def advance(self):
         token = self.current_token()
         self.pos += 1
         return token
 
+    # ===========================================
     def match(self, expected_lexeme):
         token = self.current_token()
         if token and token[1] == expected_lexeme:
@@ -37,6 +42,7 @@ class Interpreter:
             return token
         return None
 
+    # ===========================================
     def expect(self, expected_lexeme, error_context=""):
         token = self.match(expected_lexeme)
         if not token:
@@ -46,10 +52,11 @@ class Interpreter:
             raise SyntaxErrorLOL(f"Error on line {line}: Expected '{expected_lexeme}', found '{lexeme}'. {error_context}")
         return token
 
+    # ===========================================
     def interpret(self):
-        # Sinimulan ko muna yung flow ng program
         self.parse_program()
 
+    # ===========================================
     def parse_program(self):
         # <program> ::= HAI <wazzup-sec> <statement-block> KTHXBYE
         self.expect("HAI", "Program must start with 'HAI'.")
@@ -67,6 +74,7 @@ class Interpreter:
             curr = self.current_token()
             raise SyntaxErrorLOL(f"Error on line {curr[0]}: Unexpected token '{curr[1]}' after KTHXBYE.")
 
+    # ===========================================
     def parse_wazzup_block(self):
         # WAZZUP declarations setup
         self.expect("WAZZUP", "Expected 'WAZZUP'.")
@@ -74,6 +82,7 @@ class Interpreter:
             self.parse_var_declaration()
         self.expect("BUHBYE", "Expected 'BUHBYE'.")
 
+    # ===========================================
     def parse_var_declaration(self):
             # Variable declaration at ITZ handling
             self.expect("I HAS A", "Variable declaration must start with 'I HAS A'.")
@@ -94,6 +103,7 @@ class Interpreter:
 
             self.table.declare(var_name, initial_val)
 
+    # ===========================================
     def parse_statement(self):
         # TODO: 
         pass
@@ -106,7 +116,6 @@ class Interpreter:
         # TODO: 
         pass
 
-#more todo gaiz mehwehwh
 
 if __name__ == "__main__":
     try:
