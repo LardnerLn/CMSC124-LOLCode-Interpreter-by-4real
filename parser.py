@@ -248,17 +248,36 @@ def parse_gimmeh():
 
 # =========================================================
 def parse_comments():
-    # <comment> ::= BTW | OBTW TLDR  
-    global pos
+    # <comment> ::= BTW <text> | OBTW <text> TLDR  
+    global pos, indent_level  #
     while pos < len(tokens):
         line, lexeme, _ = tokens[pos]
  
         if lexeme == "BTW":
+            print_tree("BTW") 
             pos += 1
-        elif lexeme == "OBTW":
-            pos += 1
-            if pos < len(tokens) and tokens[pos][1] == "TLDR":
+            # print the comment text as child branch
+            if pos < len(tokens) and tokens[pos][0] == line and tokens[pos][1] not in ["BTW", "OBTW", "TLDR"]:
+                indent_level += 1
+                print_tree(f"Comment: {tokens[pos][1]}")
+                indent_level -= 1
                 pos += 1
+
+        elif lexeme == "OBTW":
+            print_tree("OBTW")  
+            pos += 1
+            
+            # print text tokens under OBTW
+            indent_level += 1
+            while pos < len(tokens) and tokens[pos][1] != "TLDR":
+                print_tree(f"Comment: {tokens[pos][1]}")
+                pos += 1
+            indent_level -= 1
+            
+            if pos < len(tokens) and tokens[pos][1] == "TLDR":
+                print_tree("TLDR")  
+                pos += 1
+                
             else:
                 raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'OBTW' has no closing 'TLDR'.")
         elif lexeme == "TLDR":

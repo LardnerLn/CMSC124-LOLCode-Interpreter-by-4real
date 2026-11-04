@@ -36,7 +36,11 @@ KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 
 # =========================================================
 def classify(lexeme):
-    #Classifies a lexeme as a Literal, Keyword, or Identifier
+    #Classifies a lexeme as a Literal, Keyword, or Identifier 
+    # Check for comment keywords
+    if lexeme in ["BTW", "OBTW", "TLDR"]:
+        return ("Comment Keyword", lexeme)
+ 
     for name, regex in LITERALS:
         if regex.match(lexeme):
             return ("Literal", name)
@@ -51,6 +55,10 @@ def classify(lexeme):
     if IDENTIFIER.match(lexeme):
         return ("Identifier", None)
 
+    # Check if it's comment text content
+    if type(lexeme) is str and not lexeme.startswith(("HAI", "KTHXBYE")):
+        return ("Comment Text", None)
+    
     return ("INVALID", None)
 
 # =========================================================
@@ -93,6 +101,10 @@ def tokenize(line):
             if line[i : i + kw_len] == comment_kw:
                 if (i + kw_len == line_length) or line[i + kw_len].isspace():
                     tokens.append(comment_kw)
+                    # Capture text on the line as a comment token 
+                    comment_text = line[i + kw_len:].strip()
+                    if comment_text:
+                        tokens.append(comment_text)
                     is_comment = True
                     break
 
@@ -142,6 +154,9 @@ def tokenize_code(lines):
                 multiline_comment = False
                 line_tokens = ["TLDR"] + tokenize(stripped_line[match.end():])
                 tokenized_program.append((line_number, line_tokens))
+            else:
+                # Store lines inside multi-line comment blocks
+                tokenized_program.append((line_number, [stripped_line]))
             continue
  
         # OBTW at the start of a line (comment may close on the same line)
