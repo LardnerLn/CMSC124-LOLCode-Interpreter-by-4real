@@ -34,9 +34,13 @@ KEYWORD_REGEX = [(word, re.compile("^" + re.escape(word) + "$")) for word in KEY
 IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
 KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 
-
+# =========================================================
 def classify(lexeme):
-    #Classifies a lexeme as a Literal, Keyword, or Identifier
+    #Classifies a lexeme as a Literal, Keyword, or Identifier 
+    # Check for comment keywords
+    if lexeme in ["BTW", "OBTW", "TLDR"]:
+        return ("Comment Keyword", lexeme)
+ 
     for name, regex in LITERALS:
         if regex.match(lexeme):
             return ("Literal", name)
@@ -51,9 +55,13 @@ def classify(lexeme):
     if IDENTIFIER.match(lexeme):
         return ("Identifier", None)
 
+    # Check if it's comment text content
+    if type(lexeme) is str and not lexeme.startswith(("HAI", "KTHXBYE")):
+        return ("Comment Text", None)
+    
     return ("INVALID", None)
 
-
+# =========================================================
 def read_file(filename):
     #Reads source lines from a file
     lines = []
@@ -62,7 +70,7 @@ def read_file(filename):
             lines.append(line.rstrip("\n"))
     return lines
 
-
+# =========================================================
 def tokenize(line):
     #Splits a single line into token strings
     tokens = []
@@ -93,6 +101,10 @@ def tokenize(line):
             if line[i : i + kw_len] == comment_kw:
                 if (i + kw_len == line_length) or line[i + kw_len].isspace():
                     tokens.append(comment_kw)
+                    # Capture text on the line as a comment token 
+                    comment_text = line[i + kw_len:].strip()
+                    if comment_text:
+                        tokens.append(comment_text)
                     is_comment = True
                     break
 
@@ -122,24 +134,40 @@ def tokenize(line):
 
     return tokens
 
-
+# =========================================================
 def tokenize_code(lines):
     #Tokenizes lines of code and filters out comments
     tokenized_program = []
     multiline_comment = False
+    
+    TLDR_REGEX = re.compile(r'(?<!\S)TLDR(?!\S)')
 
     for line_number, raw_line in enumerate(lines, 1):
         stripped_line = raw_line.strip()
         if not stripped_line:
             continue
 
-        if stripped_line == "OBTW":
-            multiline_comment = True
+        # Inside OBTW <text> TLDR: skip everything until a line containing TLDR
+        if multiline_comment:
+            match = TLDR_REGEX.search(stripped_line)
+            if match:
+                multiline_comment = False
+                line_tokens = ["TLDR"] + tokenize(stripped_line[match.end():])
+                tokenized_program.append((line_number, line_tokens))
+            else:
+                # Store lines inside multi-line comment blocks
+                tokenized_program.append((line_number, [stripped_line]))
             continue
-        elif stripped_line == "TLDR":
-            multiline_comment = False
-            continue
-        elif multiline_comment:
+ 
+        # OBTW at the start of a line (comment may close on the same line)
+        if stripped_line.split()[0] == "OBTW":
+            line_tokens = ["OBTW"]
+            match = TLDR_REGEX.search(stripped_line)
+            if match:
+                line_tokens += ["TLDR"] + tokenize(stripped_line[match.end():])
+            else:
+                multiline_comment = True
+            tokenized_program.append((line_number, line_tokens))
             continue
 
         line_tokens = tokenize(raw_line)
@@ -148,7 +176,7 @@ def tokenize_code(lines):
 
     return tokenized_program
 
-
+# =========================================================
 def read_lexemes(filename):
     #Tokenizes and classifies lexemes from a file
     lines = read_file(filename)
@@ -169,7 +197,7 @@ def read_lexemes(filename):
 
     return classified_tokens
 
-
+# =========================================================
 def print_token_table(tokens):
     #Displays formatted token table
     print("\n" + "=" * 55)
