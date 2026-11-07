@@ -3,7 +3,7 @@
 from lexer import read_lexemes, print_token_table
 from parser import parse, SyntaxErrorLOL
 from sem_analyzer import analyze_semantics, SemanticErrorLOL  # Note: sem_analyzer.py filename
-# from interpreter import interpret_program, InterpreterRuntimeError
+from interpreter import interpret_program, InterpreterRuntimeError
 from symbol_table import print_symbol_table
 
 def run_interpreter(filename):
@@ -27,16 +27,16 @@ def run_interpreter(filename):
 
         # Phase 4: Interpretation & Execution
         print("\n--- Program Execution Output ---")
-        # table = interpret_program(ast)
+        table = interpret_program(ast)
 
         # Print Symbol Table
-        # print_symbol_table(table)
+        print_symbol_table(table)
 
     except SyntaxErrorLOL as e:
         print("\nSYNTAX ERROR FAILED: " + str(e))
     except SemanticErrorLOL as e:
         print("\nSEMANTIC ERROR FAILED: " + str(e))
-    # except InterpreterRuntimeError as e:
+    except InterpreterRuntimeError as e:
         print("\nRUNTIME ERROR FAILED: " + str(e))
 
 
