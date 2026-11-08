@@ -25,24 +25,28 @@ def current_token():
         return tokens[pos]
     return None
 
+# ========================
 def peek_lexeme():
     token = current_token()
     if token:
         return token[1]
     return None
 
+# ========================
 def peek_category():
     token = current_token()
     if token:
         return token[2]
     return None
 
+# ========================
 def advance():
     global pos
     token = current_token()
     pos += 1
     return token
 
+# ========================
 def match(expected_lexeme):
     token = current_token()
     if token and token[1] == expected_lexeme:
@@ -50,6 +54,7 @@ def match(expected_lexeme):
         return token
     return None
 
+# ========================
 def expect(expected_lexeme, error_context=""):
     token = match(expected_lexeme)
     if not token:
@@ -63,7 +68,7 @@ def expect(expected_lexeme, error_context=""):
 
 # =========================================================
 def parse(token_list):
-    # Initializes parser state, prints the parse tree, and returns the AST
+     # Initializes parser state, prints the parse tree, and returns the AST
     global tokens, pos, indent_level
     tokens = token_list
     pos = 0
@@ -81,14 +86,19 @@ def parse_program():
     print_tree("<program>")
     indent_level += 1
 
-    hai_tok = expect("HAI", "Program must start with 'HAI'.")
+    functions = []
+    # Allow top-level functions declared before HAI 
+    while current_token() and peek_lexeme() == "HOW IZ I":
+        functions.append(parse_function_definition())
+
+    hai_tok = expect("HAI", "Program must include 'HAI'.")
     print_tree("HAI")
 
     declarations = []
-    if peek_lexeme() == "WAZZUP":
+    if current_token() and peek_lexeme() == "WAZZUP":
         declarations = parse_wazzup_block()
 
-    body_statements = []
+    body_statements = list(functions)
     while current_token() and peek_lexeme() != "KTHXBYE":
         stmt = parse_statement()
         if stmt:
@@ -96,10 +106,6 @@ def parse_program():
 
     expect("KTHXBYE", "Program must end with 'KTHXBYE'.")
     print_tree("KTHXBYE")
-
-    if current_token():
-        line, lexeme, _ = current_token()
-        raise SyntaxErrorLOL(f"Syntax Error on line {line}: Unexpected token '{lexeme}' after KTHXBYE.")
 
     indent_level -= 1
 
@@ -211,9 +217,6 @@ def parse_statement():
         elif next_lexeme == "IS NOW A":
             match("IS NOW A")
             print_tree("IS NOW A")
-            if peek_category() != "Data Type":
-                line = current_token()[0] if current_token() else "EOF"
-                raise SyntaxErrorLOL(f"Syntax Error on line {line}: Expected data type after 'IS NOW A'.")
             dt_tok = advance()
             print_tree(f"Data Type: {dt_tok[1]}")
             indent_level -= 1
@@ -224,8 +227,16 @@ def parse_statement():
                 "line": var_tok[0]
             }
         else:
-            line = token[0]
-            raise SyntaxErrorLOL(f"Syntax Error on line {line}: Unexpected identifier statement with '{lexeme}'.")
+            indent_level -= 1
+            return {
+                "type": "EXPR_STMT",
+                "expr": {
+                    "type": "VARIABLE",
+                    "name": var_tok[1],
+                    "line": var_tok[0]
+                },
+                "line": var_tok[0]
+            }
     else:
         # Standalone expression statement (saves output into IT)
         expr_node = parse_expression()
@@ -238,28 +249,48 @@ def parse_statement():
 # =========================================================
 def parse_visible():
     # <print> ::= VISIBLE <expr> (+ <expr>)*
-    global indent_level
+    global pos, indent_level
     print_tree("<output-statement>")
     indent_level += 1
-
+    
     vis_tok = expect("VISIBLE")
     print_tree("VISIBLE")
-    
+    vis_line = vis_tok[0]
     indent_level += 1
-    args = [parse_expression()]
-    indent_level -= 1
 
-    while match("+"):
-        print_tree("+")
-        indent_level += 1
-        args.append(parse_expression())
-        indent_level -= 1
-        
+    args = [parse_expression()]
+
+    while pos < len(tokens):
+        parse_comments()
+        curr = current_token()
+
+        if not curr or curr[0] != vis_line:
+            break
+
+        if curr[1] in ["BUHBYE", "KTHXBYE", "BTW", "OBTW", "TLDR"]:
+            break
+
+        if curr[1] in ["AN", "+"]:
+            advance()
+            if curr[1] == "AN":
+                print_tree("AN")
+            curr = current_token()
+            if not curr or curr[0] != vis_line:
+                break
+
+        cat = curr[2]
+        lex = curr[1]
+        if cat.startswith("Literal") or cat in ["Identifier"] or lex in ["SUM OF", "DIFF OF", "PRODUKT OF", "QUOSHUNT OF", "MOD OF", "BIGGR OF", "SMALLR OF", "SMOOSH", "MAEK", "BOTH OF", "EITHER OF", "WON OF", "NOT", "ALL OF", "ANY OF", "BOTH SAEM", "DIFFRINT", "WIN", "FAIL"]:
+            args.append(parse_expression())
+        else:
+            break
+
+    indent_level -= 1
     indent_level -= 1
     return {
         "type": "VISIBLE",
         "args": args,
-        "line": vis_tok[0]
+        "line": vis_line
     }
 
 # =========================================================
@@ -292,8 +323,8 @@ def parse_comments():
     # Filters comments and maintains parse tree output
     global pos, indent_level
     while pos < len(tokens):
-        line, lexeme, _ = tokens[pos]
- 
+        line, lexeme, category = tokens[pos]
+
         if lexeme == "BTW":
             print_tree("BTW") 
             pos += 1
@@ -319,6 +350,8 @@ def parse_comments():
                 raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'OBTW' has no closing 'TLDR'.")
         elif lexeme == "TLDR":
             raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'TLDR' found without a matching 'OBTW'.")
+        elif category in ["Comment Text"]:
+            pos += 1
         else:
             break
 
@@ -326,31 +359,41 @@ def parse_comments():
 def parse_expression():
     # Parses expression nodes for literals, variables, prefix operations, typecasts, and function calls
     global indent_level
+    parse_comments()
+
     curr = current_token()
     if not curr:
         raise SyntaxErrorLOL("Syntax Error: Unexpected end of tokens while parsing expression.")
 
     line, lexeme, category = curr[0], curr[1], curr[2]
 
-    # Literals and Identifiers
-    if category.startswith("Literal") or category == "Literal":
-        print_tree(f"Expression ({lexeme})")
+    if lexeme == "+":
+        advance()
+        curr = current_token()
+        if not curr:
+            raise SyntaxErrorLOL(f"Syntax Error on line {line}: Unexpected end of line after '+'.")
+        line, lexeme, category = curr[0], curr[1], curr[2]
+
+    # Literals
+    if category.startswith("Literal") or lexeme in ["WIN", "FAIL"]:
+        print_tree(f"Literal: {lexeme}")
         advance()
         val_type = "YARN"
         val = lexeme
-        if category == "Literal (NUMBR)":
+
+        if "NUMBR" in category:
             val_type = "NUMBR"
-            val = int(lexeme)
-        elif category == "Literal (NUMBAR)":
+            val = int(lexeme) if lexeme.lstrip("-").isdigit() else lexeme
+        elif "NUMBAR" in category:
             val_type = "NUMBAR"
-            val = float(lexeme)
-        elif category == "Literal (TROOF)":
+            val = float(lexeme) if "." in lexeme else lexeme
+        elif "TROOF" in category or lexeme in ["WIN", "FAIL"]:
             val_type = "TROOF"
             val = True if lexeme == "WIN" else False
-        elif category == "Literal (YARN)":
+        elif "YARN" in category:
             val_type = "YARN"
             val = lexeme[1:-1] if (lexeme.startswith('"') and lexeme.endswith('"')) else lexeme
-        elif category == "Literal (TYPE)":
+        elif "TYPE" in category:
             val_type = "TYPE"
             val = lexeme
 
@@ -361,8 +404,9 @@ def parse_expression():
             "line": line
         }
 
+    # Identifiers
     if category == "Identifier":
-        print_tree(f"Expression ({lexeme})")
+        print_tree(f"Identifier: {lexeme}")
         advance()
         return {
             "type": "VARIABLE",
@@ -450,7 +494,7 @@ def parse_expression():
         advance()
         indent_level += 1
         left = parse_expression()
-        expect("AN", f"Expected 'AN' separator in {op_name} comparison.")
+        expect("AN", f"Expected 'AN' separator in {lexeme} comparison.")
         print_tree("AN")
         right = parse_expression()
         indent_level -= 1
@@ -489,16 +533,14 @@ def parse_expression():
         expr = parse_expression()
         expect("A", "Expected 'A' after expression in MAEK typecast.")
         print_tree("A")
-        if peek_category() != "Data Type":
-            raise SyntaxErrorLOL(f"Syntax Error on line {line}: Expected valid data type in MAEK casting.")
-        dt_tok = current_token()
-        print_tree(f"Data Type: {dt_tok[1]}")
-        advance()
+        curr_type = advance()
+        target_type = curr_type[1]
+        print_tree(f"Data Type: {target_type}")
         indent_level -= 1
         return {
             "type": "MAEK",
             "expr": expr,
-            "target_type": dt_tok[1],
+            "target_type": target_type,
             "line": line
         }
 
@@ -507,8 +549,6 @@ def parse_expression():
         print_tree("Function Call")
         advance()
         curr_id = current_token()
-        if not curr_id or curr_id[2] != "Identifier":
-            raise SyntaxErrorLOL(f"Syntax Error on line {line}: Expected function name after 'I IZ'.")
         func_name = curr_id[1]
         print_tree(f"Function Name: {func_name}")
         advance()
@@ -524,8 +564,6 @@ def parse_expression():
                 args.append(parse_expression())
         indent_level -= 1
 
-        expect("MKAY", "Expected 'MKAY' at end of function call.")
-        print_tree("MKAY")
         return {
             "type": "FUNC_CALL",
             "name": func_name,
