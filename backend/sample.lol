@@ -14,7 +14,7 @@ HAI
         I HAS A quo ITZ QUOSHUNT OF 4 AN 5
     BUHBYE
 
-    BTprint literals and variables
+    BTW print literals and variables
     VISIBLE "declarations"
     VISIBLE monde BTW should be NOOB
     VISIBLE num
