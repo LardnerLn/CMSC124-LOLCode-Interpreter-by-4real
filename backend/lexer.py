@@ -2,7 +2,7 @@ import re
 
 # Lexemes classifiers based on Project Requirement 1
 LITERALS = [
-    ("YARN",   re.compile(r'^"(:[)>o":]|[^":])*"$')),
+    ("YARN",   re.compile(r'^"[^"]*"$')),  # Fixed regex to allow colons (:) and special chars in string literals
     ("NUMBAR", re.compile(r'^-?[0-9]+\.[0-9]+$')),
     ("NUMBR",  re.compile(r'^-?[0-9]+$')),
     ("TROOF",  re.compile(r'^(WIN|FAIL)$')),
@@ -28,7 +28,7 @@ KEYWORD_CATEGORIES = {
 KEYWORDS = []
 for words in KEYWORD_CATEGORIES.values():
     KEYWORDS.extend(words)
-KEYWORDS.extend(["BTW", "OBTW", "TLDR", "MKAY", "AN"])
+KEYWORDS.extend(["BTW", "OBTW", "TLDR", "MKAY", "AN", "+"])
 
 KEYWORD_REGEX = [(word, re.compile("^" + re.escape(word) + "$")) for word in KEYWORDS]
 IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
@@ -36,14 +36,14 @@ KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 
 # =========================================================
 def classify(lexeme):
-    #Classifies a lexeme as a Literal, Keyword, or Identifier 
+    # Classifies a lexeme as a Literal, Keyword, or Identifier 
     # Check for comment keywords
     if lexeme in ["BTW", "OBTW", "TLDR"]:
         return ("Comment Keyword", lexeme)
  
     for name, regex in LITERALS:
         if regex.match(lexeme):
-            return ("Literal", name)
+            return (f"Literal ({name})", lexeme)
 
     for word, regex in KEYWORD_REGEX:
         if regex.match(lexeme.upper()):
@@ -56,14 +56,14 @@ def classify(lexeme):
         return ("Identifier", None)
 
     # Check if it's comment text content
-    if type(lexeme) is str and not lexeme.startswith(("HAI", "KTHXBYE")):
+    if type(lexeme) is str and not lexeme.startswith('"') and not lexeme.startswith(("HAI", "KTHXBYE")):
         return ("Comment Text", None)
     
     return ("INVALID", None)
 
 # =========================================================
 def read_file(filename):
-    #Reads source lines from a file
+    # Reads source lines from a file
     lines = []
     with open(filename, "r") as file:
         for line in file:
@@ -72,7 +72,7 @@ def read_file(filename):
 
 # =========================================================
 def tokenize(line):
-    #Splits a single line into token strings
+    # Splits a single line into token strings
     tokens = []
     line = line.strip()
     i = 0
@@ -83,7 +83,6 @@ def tokenize(line):
             i += 1
             continue
 
-        # String literal with spaces
         if line[i] == '"':
             closing_quote = line.find('"', i + 1)
             if closing_quote != -1:
@@ -94,14 +93,12 @@ def tokenize(line):
                 break
             continue
 
-        # Comment keywords
         is_comment = False
         for comment_kw in ["OBTW", "TLDR", "BTW"]:
             kw_len = len(comment_kw)
             if line[i : i + kw_len] == comment_kw:
                 if (i + kw_len == line_length) or line[i + kw_len].isspace():
                     tokens.append(comment_kw)
-                    # Capture text on the line as a comment token 
                     comment_text = line[i + kw_len:].strip()
                     if comment_text:
                         tokens.append(comment_text)
@@ -111,7 +108,6 @@ def tokenize(line):
         if is_comment:
             break
 
-        # Multi-word and single-word keywords
         matched_keyword = None
         for keyword in KEYWORDS_SORTED:
             kw_len = len(keyword)
@@ -126,7 +122,6 @@ def tokenize(line):
             i += len(matched_keyword)
             continue
 
-        # Standard identifier or single word lexeme
         start_index = i
         while i < line_length and not line[i].isspace():
             i += 1
@@ -136,7 +131,7 @@ def tokenize(line):
 
 # =========================================================
 def tokenize_code(lines):
-    #Tokenizes lines of code and filters out comments
+    # Tokenizes lines of code and includes comments
     tokenized_program = []
     multiline_comment = False
     
@@ -147,7 +142,6 @@ def tokenize_code(lines):
         if not stripped_line:
             continue
 
-        # Inside OBTW <text> TLDR: skip everything until a line containing TLDR
         if multiline_comment:
             match = TLDR_REGEX.search(stripped_line)
             if match:
@@ -155,11 +149,9 @@ def tokenize_code(lines):
                 line_tokens = ["TLDR"] + tokenize(stripped_line[match.end():])
                 tokenized_program.append((line_number, line_tokens))
             else:
-                # Store lines inside multi-line comment blocks
                 tokenized_program.append((line_number, [stripped_line]))
             continue
  
-        # OBTW at the start of a line (comment may close on the same line)
         if stripped_line.split()[0] == "OBTW":
             line_tokens = ["OBTW"]
             match = TLDR_REGEX.search(stripped_line)
@@ -178,7 +170,7 @@ def tokenize_code(lines):
 
 # =========================================================
 def read_lexemes(filename):
-    #Tokenizes and classifies lexemes from a file
+    # Tokenizes and classifies lexemes from a file
     lines = read_file(filename)
     tokenized_program = tokenize_code(lines)
     classified_tokens = []
@@ -188,8 +180,8 @@ def read_lexemes(filename):
             category, sub_type = classify(token)
             if category == "KEYWORD":
                 display_category = sub_type
-            elif category == "Literal":
-                display_category = f"Literal ({sub_type})"
+            elif category.startswith("Literal"):
+                display_category = category
             else:
                 display_category = category
 
@@ -199,7 +191,7 @@ def read_lexemes(filename):
 
 # =========================================================
 def print_token_table(tokens):
-    #Displays formatted token table
+    # Displays formatted token table
     print("\n" + "=" * 55)
     print(f"{'Line':<6} | {'Lexeme':<24} | {'Category':<20}")
     print("=" * 55)

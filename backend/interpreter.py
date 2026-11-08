@@ -34,6 +34,7 @@ def get_data_type(val):
         return "NUMBAR"
     return "YARN"
 
+# ========================================
 def to_bool(val):
     # convert value to bool
     if val is None:
@@ -49,6 +50,7 @@ def to_bool(val):
         return False
     return True
 
+# ========================================
 def to_num(val, node):
     # convert value to number
     if val is None:
@@ -63,6 +65,8 @@ def to_num(val, node):
 
     # parse string to number
     s = str(val).strip()
+    if s == "":  # handle empty string inputs as 0
+        return 0
     if re.match(r'^-?[0-9]+$', s):
         return int(s)
     if re.match(r'^-?[0-9]+\.[0-9]+$', s):
@@ -70,10 +74,10 @@ def to_num(val, node):
         
     raise_my_error("Cannot parse number: " + str(val), node)
 
+# ========================================
 def to_string(val, node, explicit=False):
     # convert value to yarn safely
     if val is None:
-        # Kapag NOOB o None, mag-return ng empty string para sa VISIBLE (hindi mag-error)
         if not explicit:
             return ""
         return ""
@@ -85,14 +89,13 @@ def to_string(val, node, explicit=False):
     if isinstance(val, int):
         return str(val)
     if isinstance(val, float):
-        # format float decimals
-        temp_s = str(val)
-        if "." in temp_s:
-            p = temp_s.split(".")
-            return p[0] + "." + p[1][:2]
-        return temp_s
+        s = str(val)
+        if s.endswith(".0"):
+            return s
+        return s
     return str(val)
 
+# ========================================
 def do_cast(val, target, node):
     # cast value to target
     if target == "TROOF":
@@ -100,18 +103,21 @@ def do_cast(val, target, node):
     elif target == "NOOB":
         return None
     elif target == "YARN":
-        return to_string(val, node, True)
+        return to_string(val, node, explicit=True)
     elif target == "NUMBR":
         if val is None:
             return 0
-        return int(to_num(val, node))
+        num = to_num(val, node)
+        return int(num)
     elif target == "NUMBAR":
         if val is None:
             return 0.0
-        return float(to_num(val, node))
+        num = to_num(val, node)
+        return float(num)
     else:
         raise_my_error("Unknown type: " + str(target), node)
 
+# ========================================
 def check_equals(a, b):
     # compare values safely
     t1 = get_data_type(a)
@@ -140,7 +146,6 @@ def eval_expression(expr, symbol_table):
         val = eval_expression(expr["operand"], symbol_table)
         return not to_bool(val)
     elif etype == "VARIADIC_BOOL":
-        # process variadic arguments
         results = []
         for arg in expr["args"]:
             results.append(to_bool(eval_expression(arg, symbol_table)))
@@ -160,7 +165,6 @@ def eval_expression(expr, symbol_table):
                     break
             return any_true
     elif etype == "SMOOSH":
-        # concat all strings
         res_str = ""
         for arg in expr["args"]:
             res_str = res_str + to_string(eval_expression(arg, symbol_table), expr)
@@ -173,13 +177,12 @@ def eval_expression(expr, symbol_table):
 
     raise_my_error("Unknown expression type: " + str(etype), expr)
 
+# ========================================
 def eval_binary_op(expr, symbol_table):
-    # evaluate binary operator
     op = expr["op"]
     left = eval_expression(expr["left"], symbol_table)
     right = eval_expression(expr["right"], symbol_table)
 
-    # check logical operations
     if op == "BOTH OF":
         return to_bool(left) and to_bool(right)
     elif op == "EITHER OF":
@@ -191,7 +194,6 @@ def eval_binary_op(expr, symbol_table):
     elif op == "DIFFRINT":
         return not check_equals(left, right)
 
-    # get numeric operands
     num_a = to_num(left, expr)
     num_b = to_num(right, expr)
     
@@ -199,7 +201,6 @@ def eval_binary_op(expr, symbol_table):
     if isinstance(num_a, int) and isinstance(num_b, int):
         both_ints = True
 
-    # process arithmetic operations
     if op == "SUM OF":
         return num_a + num_b
     elif op == "DIFF OF":
@@ -210,13 +211,13 @@ def eval_binary_op(expr, symbol_table):
         if num_b == 0:
             raise_my_error("Division by zero error", expr)
         if both_ints:
-            return int(num_a / num_b)
+            return num_a // num_b
         return num_a / num_b
     elif op == "MOD OF":
         if num_b == 0:
             raise_my_error("Modulo zero error", expr)
         if both_ints:
-            return num_a - num_b * int(num_a / num_b)
+            return num_a % num_b
         return num_a % num_b
     elif op == "BIGGR OF":
         return max(num_a, num_b)
@@ -225,8 +226,8 @@ def eval_binary_op(expr, symbol_table):
 
     raise_my_error("Unknown operator: " + str(op), expr)
 
+# ========================================
 def call_user_func(expr, symbol_table):
-    # execute user function
     fname = expr["name"]
     if fname not in my_functions:
         raise_my_error("Function not found: " + str(fname), expr)
@@ -237,7 +238,6 @@ def call_user_func(expr, symbol_table):
     if len(expr["args"]) != len(params):
         raise_my_error("Argument count mismatch", expr)
 
-    # create local symbol table
     local_symbol_table = create_symbol_table()
     for i in range(len(params)):
         declare_var(local_symbol_table, params[i], eval_expression(expr["args"][i], symbol_table))
@@ -251,7 +251,6 @@ def call_user_func(expr, symbol_table):
 # STATEMENTS SECTION
 # =========================================================
 def run_block(statements, symbol_table):
-    # execute statement block
     res_val = None
     is_return = False
     is_break = False
@@ -263,8 +262,8 @@ def run_block(statements, symbol_table):
 
     return None, False, False
 
+# ========================================
 def run_statement(stmt, symbol_table):
-    # execute single statement
     stype = stmt["type"]
     res_val = None
     is_return = False
@@ -279,7 +278,6 @@ def run_statement(stmt, symbol_table):
         assign_var(symbol_table, stmt["name"], do_cast(current_val, stmt["target_type"], stmt))
 
     elif stype == "VISIBLE":
-        # print output arguments
         out_str = ""
         for arg in stmt["args"]:
             out_str = out_str + to_string(eval_expression(arg, symbol_table), stmt)
@@ -288,7 +286,6 @@ def run_statement(stmt, symbol_table):
         print_func(out_str)
 
     elif stype == "GIMMEH":
-        # get user input
         val_input = str(input_func(stmt["name"] + ": "))
         assign_var(symbol_table, stmt["name"], val_input)
 
@@ -319,8 +316,8 @@ def run_statement(stmt, symbol_table):
 
     return res_val, is_return, is_break
 
+# ========================================
 def run_if_stmt(stmt, symbol_table):
-    # execute if condition
     it_val = get_var_value(symbol_table, "IT")
     if to_bool(it_val):
         return run_block(stmt["then_block"], symbol_table)
@@ -331,8 +328,8 @@ def run_if_stmt(stmt, symbol_table):
 
     return run_block(stmt["else_block"], symbol_table)
 
+# ========================================
 def run_switch_stmt(stmt, symbol_table):
-    # execute switch cases
     it_val = get_var_value(symbol_table, "IT")
     matched = False
     res_val = None
@@ -350,14 +347,13 @@ def run_switch_stmt(stmt, symbol_table):
     res_val, is_return, is_break = run_block(stmt["default_block"], symbol_table)
     return res_val, is_return, is_break
 
+# ========================================
 def run_loop_stmt(stmt, symbol_table):
-    # execute loop block
     var_name = stmt["var_name"]
     res_val = None
     is_return = False
 
     while True:
-        # check loop condition
         if stmt.get("cond_expr") is not None:
             cond_val = to_bool(eval_expression(stmt["cond_expr"], symbol_table))
             if stmt["cond_type"] == "TIL" and cond_val:
@@ -371,7 +367,6 @@ def run_loop_stmt(stmt, symbol_table):
         if is_break:
             break
 
-        # update loop counter
         curr = to_num(get_var_value(symbol_table, var_name), stmt)
         if stmt["operation"] == "UPPIN":
             assign_var(symbol_table, var_name, curr + 1)
@@ -385,17 +380,14 @@ def run_loop_stmt(stmt, symbol_table):
 # MAIN PROGRAM INTERPRETER
 # =========================================================
 def interpret_program(ast, output_override=None, input_override=None):
-    # main runner function
     global my_functions, print_func, input_func
     my_functions = {}
 
-    # setup output function
     if output_override is not None:
         print_func = output_override
     else:
         print_func = lambda text: print(text, end="")
         
-    # setup input function
     if input_override is not None:
         input_func = input_override
     else:
@@ -403,19 +395,16 @@ def interpret_program(ast, output_override=None, input_override=None):
 
     symbol_table = create_symbol_table()
 
-    # scan function definitions first
     for stmt in ast["body"]:
         if stmt["type"] == "FUNC_DEF":
             my_functions[stmt["name"]] = stmt
 
-    # initialize global variables
     for decl in ast["declarations"]:
         val = None
         if decl["init"] is not None:
             val = eval_expression(decl["init"], symbol_table)
         declare_var(symbol_table, decl["name"], val)
 
-    # run main statement block
     run_block(ast["body"], symbol_table)
 
     return symbol_table

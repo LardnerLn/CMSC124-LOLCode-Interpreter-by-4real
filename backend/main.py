@@ -2,7 +2,7 @@
 
 from lexer import read_lexemes, print_token_table
 from parser import parse, SyntaxErrorLOL
-from sem_analyzer import analyze_semantics, SemanticErrorLOL  # Note: sem_analyzer.py filename
+from sem_analyzer import analyze_semantics, SemanticErrorLOL
 from interpreter import interpret_program, InterpreterRuntimeError
 from symbol_table import print_symbol_table
 
@@ -41,4 +41,4 @@ def run_interpreter(filename):
 
 
 # Point directly to any test case in your project folder
-run_interpreter("project-testcases-fixed/project-testcases-fixed/01_variables.lol")
+run_interpreter("../project-testcases/04_smoosh_assign.lol")
