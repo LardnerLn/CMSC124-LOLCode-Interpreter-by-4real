@@ -41,4 +41,4 @@ def run_interpreter(filename):
 
 
 # Point directly to any test case in your project folder
-run_interpreter("../project-testcases/04_smoosh_assign.lol")
+run_interpreter("project-testcases/04_smoosh_assign.lol")

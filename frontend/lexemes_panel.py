@@ -1,6 +1,6 @@
 # Lexemes | Tokens panel
 from tkinter import ttk
-
+import tkinter as tk
 from rounded_panel import RoundedPanel
 
 # this panel's own settings
@@ -30,13 +30,23 @@ class LexemesPanel(RoundedPanel):
                   foreground=[("selected", TEXT_COLOR)])
         style.layout("Lexemes.Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
 
-        self.table = ttk.Treeview(self.body, style="Lexemes.Treeview",
+        # Container frame to allow overlaying a vertical center line
+        table_container = tk.Frame(self.body, bg=BODY_COLOR)
+        table_container.pack(fill="both", expand=True)
+        table_container.rowconfigure(0, weight=1)
+        table_container.columnconfigure(0, weight=1)
+
+        self.table = ttk.Treeview(table_container, style="Lexemes.Treeview",
                                   columns=COLUMNS,
                                   show="headings" if SHOW_HEADINGS else "")
         for col, text in zip(COLUMNS, HEADINGS):
             self.table.heading(col, text=text)
             self.table.column(col, anchor="w", width=100)
-        self.table.pack(fill="both", expand=True)
+        self.table.grid(row=0, column=0, sticky="nsew")
+
+        # VERTICAL DIVIDER LINE IN THE MIDDLE 
+        vert_divider = tk.Frame(table_container, bg="#C4B89A", width=1)
+        vert_divider.place(relx=0.5, rely=0, relheight=1, anchor="n")
 
     def clear(self):
         self.table.delete(*self.table.get_children())

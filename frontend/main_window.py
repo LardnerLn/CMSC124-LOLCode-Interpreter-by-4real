@@ -2,6 +2,8 @@
 import tkinter as tk
 import os
 from tkinter import ttk
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from button_bar import ButtonBar
 from console_panel import ConsolePanel
@@ -10,14 +12,14 @@ from helpers import BG, FONT, PANEL
 from lexemes_panel import LexemesPanel
 from symbol_table_panel import SymbolTablePanel
 from text_editor import TextEditorPanel
-
+from backend.lexer import tokenize_code, classify
 
 class LOLCodeUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("LOLCode Interpreter")
-        self.geometry("1344x760")
-        self.minsize(960, 540)
+        self.geometry("1344x820")  # Increased height to accommodate button bar comfortably
+        self.minsize(960, 640)     # Increased minimum height
         self.configure(bg=BG)
         ttk.Style(self).theme_use("clam")
         self._build()
@@ -61,9 +63,13 @@ class LOLCodeUI(tk.Tk):
         tk.Label(title_frame, text="Interpreter", bg=BG, fg=PANEL,
                  font=(FONT, 10, "bold")).pack(anchor="w")
 
-        # Grid of panels
+        # Pack the ButtonBar at the bottom FIRST so it is pinned and never clipped
+        ButtonBar(self, self.on_execute, self.on_clear).pack(
+            side="bottom", fill="x", padx=18, pady=(10, 14))
+
+        # Grid of panels packed in the remaining top space
         main = tk.Frame(self, bg=BG)
-        main.pack(fill="both", expand=True, padx=16)
+        main.pack(side="top", fill="both", expand=True, padx=16)
         main.columnconfigure(0, weight=0, minsize=143)
         main.columnconfigure(1, weight=1)
         main.columnconfigure(2, weight=0, minsize=252)
@@ -92,17 +98,57 @@ class LOLCodeUI(tk.Tk):
         self.console = ConsolePanel(main)
         self.console.grid(row=1, column=0, columnspan=3, sticky="nsew")
 
-        ButtonBar(self, self.on_execute, self.on_clear).pack(
-            fill="x", padx=18, pady=(10, 14))
-
     def _on_file_double_click(self, _event):
         path = self.file_explorer.get_selected_path()
         if path and os.path.isfile(path):
             self.text_editor.open_file(path)
             
-    # Placeholders for future functionality
     def on_execute(self):
-        pass
+            # Get code from the text editor
+            code = self.text_editor.get_code()
+            if not code.strip():
+                self.console.write("Error: Editor is empty.\n")
+                return
+
+            # Clear old outputs
+            self.console.clear()
+            self.lexemes.clear()
+            self.symbol_table.clear()
+
+            try:
+                # Split code into lines 
+                lines = code.splitlines()
+                
+                # Tokenize using backend function
+                tokenized_program = tokenize_code(lines)
+                
+                total_tokens = 0
+                # Iterate through lines and tokens, then add them to the LexemesPanel table
+                for line_number, line_tokens in tokenized_program:
+                    for token in line_tokens:
+                        category, sub_type = classify(token)
+                        
+                        # Determine display category based on your classifier logic
+                        if category == "KEYWORD":
+                            display_category = sub_type
+                        elif category.startswith("Literal"):
+                            display_category = category
+                        else:
+                            display_category = category
+
+                        # Add row to the LexemesPanel treeview (Lexeme, Category)
+                        self.lexemes.add_row(token, display_category)
+                        total_tokens += 1
+
+                self.console.write(f"Execution successful. Total tokens found: {total_tokens}\n")
+                
+            except Exception as e:
+                self.console.write(f"Lexer Error: {str(e)}\n")
 
     def on_clear(self):
-        pass
+        self.console.clear()
+        self.lexemes.clear()
+        self.symbol_table.clear()
+        self.console.write("Outputs cleared.\n")
+
+
