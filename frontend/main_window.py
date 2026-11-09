@@ -5,10 +5,10 @@ from tkinter import ttk
 from button_bar import ButtonBar
 from console_panel import ConsolePanel
 from file_explorer import FileExplorerPanel
+from helpers import BG, FONT, PANEL
 from lexemes_panel import LexemesPanel
 from symbol_table_panel import SymbolTablePanel
 from text_editor import TextEditorPanel
-from helpers import BG, FONT, PANEL
 
 
 class LOLCodeUI(tk.Tk):
@@ -22,12 +22,42 @@ class LOLCodeUI(tk.Tk):
         self._build()
 
     def _build(self):
-        # Title
+        # Header frame at top left
         header = tk.Frame(self, bg=BG)
-        header.pack(fill="x", padx=137, pady=(10, 4), anchor="w")
-        tk.Label(header, text="LOLCode", bg=BG, fg=PANEL,
+        header.pack(fill="x", padx=16, pady=(10, 4), anchor="w")
+
+        # Load PNG logo using built-in tk.PhotoImage
+        self.logo_img = None
+
+        try:
+            self.logo_img = tk.PhotoImage(file="../assets/4Real_logo.png")
+        except Exception:
+            try:
+                self.logo_img = tk.PhotoImage(file="assets/4Real_logo.png")
+            except Exception:
+                self.logo_img = None
+
+        # Automatically scale down large images to fit header height (36px)
+        if self.logo_img is not None:
+            img_height = self.logo_img.height()
+            
+            if img_height > 50:
+                scale_factor = img_height // 36
+            
+                if scale_factor > 1:
+                    self.logo_img = self.logo_img.subsample(scale_factor, scale_factor)
+
+            logo_label = tk.Label(header, image=self.logo_img, bg=BG)
+            logo_label.pack(side="left", padx=(0, 10))
+
+        # Title text stack
+        title_frame = tk.Frame(header, bg=BG)
+        title_frame.pack(side="left")
+
+        tk.Label(title_frame, text="LOLCode", bg=BG, fg=PANEL,
                  font=(FONT, 16, "bold")).pack(anchor="w")
-        tk.Label(header, text="Interpreter", bg=BG, fg=PANEL,
+        
+        tk.Label(title_frame, text="Interpreter", bg=BG, fg=PANEL,
                  font=(FONT, 10, "bold")).pack(anchor="w")
 
         # Grid of panels
