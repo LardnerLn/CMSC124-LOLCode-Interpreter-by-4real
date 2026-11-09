@@ -15,8 +15,8 @@ class LOLCodeUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("LOLCode Interpreter")
-        self.geometry("901x703")
-        self.minsize(720, 560)
+        self.geometry("1344x760")
+        self.minsize(960, 540)
         self.configure(bg=BG)
         ttk.Style(self).theme_use("clam")
         self._build()
