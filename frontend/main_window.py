@@ -1,5 +1,6 @@
 # LOLCodeUI: main window. Only arranges the panels; each panel has its own file.
 import tkinter as tk
+import os
 from tkinter import ttk
 
 from button_bar import ButtonBar
@@ -74,6 +75,8 @@ class LOLCodeUI(tk.Tk):
         self.text_editor = TextEditorPanel(main)
         self.text_editor.grid(row=0, column=1, sticky="nsew", padx=(0, 12), pady=(0, 12))
 
+        self.file_explorer.tree.bind("<Double-1>", self._on_file_double_click)
+
         right = tk.Frame(main, bg=BG)
         right.grid(row=0, column=2, sticky="nsew", pady=(0, 12))
         right.columnconfigure(0, weight=1)
@@ -92,6 +95,11 @@ class LOLCodeUI(tk.Tk):
         ButtonBar(self, self.on_execute, self.on_clear).pack(
             fill="x", padx=18, pady=(10, 14))
 
+    def _on_file_double_click(self, _event):
+        path = self.file_explorer.get_selected_path()
+        if path and os.path.isfile(path):
+            self.text_editor.open_file(path)
+            
     # Placeholders for future functionality
     def on_execute(self):
         pass
