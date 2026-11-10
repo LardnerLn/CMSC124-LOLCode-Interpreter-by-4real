@@ -53,11 +53,11 @@ def classify(lexeme):
             return ("KEYWORD", "Keyword")
 
     if IDENTIFIER.match(lexeme):
-        return ("Identifier", None)
+        return ("Identifier", lexeme)
 
     # Check if it's comment text content
     if type(lexeme) is str and not lexeme.startswith('"') and not lexeme.startswith(("HAI", "KTHXBYE")):
-        return ("Comment Text", None)
+        return ("Comment Text", lexeme)
     
     return ("INVALID", None)
 
