@@ -1,7 +1,7 @@
 # interpreter.py
 
 import re
-from symbol_table import create_symbol_table, declare_var, assign_var, get_var_value
+from backend.symbol_table import create_symbol_table, declare_var, assign_var, get_var_value
 
 # exception for runtime errors
 class InterpreterRuntimeError(Exception):
