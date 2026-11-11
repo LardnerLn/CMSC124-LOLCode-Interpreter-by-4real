@@ -1,6 +1,6 @@
 # File Explorer panel. Edit only this file to change this panel.
 import os
-from tkinter import filedialog, ttk
+from tkinter import PhotoImage, filedialog, ttk
 
 from rounded_panel import RoundedPanel
 
@@ -12,15 +12,19 @@ BODY_COLOR = "#DFD6BB"
 TEXT_COLOR = "#2B2B2B"
 SELECT_COLOR = "#C9BE9C"
 FONT = ("Helvetica", 8, "bold")
-FOLDER_ICON = "📁"
-FILE_ICON = "📄"
 SHOW_HIDDEN = False  # set True to also list files/folders starting with "."
-
 
 class FileExplorerPanel(RoundedPanel):
     def __init__(self, parent):
+        folder_icon = PhotoImage(master=parent, width=18, height=16)
+        folder_icon.put("#E4C516", to=(1, 5, 17, 15))
+        folder_icon.put("#E4C516", to=(2, 2, 9, 7))
+        file_icon = PhotoImage(master=parent, width=16, height=16)
+        file_icon.put("#D5E8E5", to=(3, 1, 13, 15))
         super().__init__(parent, TITLE, HEADER_COLOR, title_color=TITLE_COLOR,
-                         icon=FOLDER_ICON, plus_button=True)
+                        plus_button=True)
+        self.folder_icon = folder_icon
+        self.file_icon = file_icon
 
         style = ttk.Style()
         style.configure("Explorer.Treeview", background=BODY_COLOR,
@@ -72,7 +76,7 @@ class FileExplorerPanel(RoundedPanel):
         self.tree.delete(*self.tree.get_children())
 
         name = os.path.basename(path) or path
-        root = self.tree.insert("", "end", text=f"{FOLDER_ICON} {name}", open=True)
+        root = self.tree.insert("", "end", text=f" {name}", image=self.folder_icon, open=True)
         self._paths[root] = path
         self._populate(root)
 
@@ -91,12 +95,12 @@ class FileExplorerPanel(RoundedPanel):
         for entry in entries:
             if entry.is_dir():
                 iid = self.tree.insert(parent_iid, "end",
-                                       text=f"{FOLDER_ICON} {entry.name}")
+                                       text=f" {entry.name}", image=self.folder_icon)
                 self._paths[iid] = entry.path
                 self.tree.insert(iid, "end")  # dummy child so the arrow shows
             else:
                 iid = self.tree.insert(parent_iid, "end",
-                                       text=f"{FILE_ICON} {entry.name}")
+                                       text=f" {entry.name}", image=self.file_icon)
                 self._paths[iid] = entry.path
         self._loaded.add(parent_iid)
 

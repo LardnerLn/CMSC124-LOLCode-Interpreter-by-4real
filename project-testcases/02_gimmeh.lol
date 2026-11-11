@@ -11,7 +11,7 @@ HAI
     VISIBLE monde
 
     GIMMEH num
-    GIMMEH monde
+    GIMMEH monde 
 
     VISIBLE DIFF OF num AN monde
 KTHXBYE
