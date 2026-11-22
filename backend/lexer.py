@@ -2,11 +2,11 @@ import re
 
 # Lexemes classifiers based on Project Requirement 1
 LITERALS = [
-    ("YARN",   re.compile(r'^"[^"]*"$')),  # Fixed regex to allow colons (:) and special chars in string literals
-    ("NUMBAR", re.compile(r'^-?[0-9]+\.[0-9]+$')),
-    ("NUMBR",  re.compile(r'^-?[0-9]+$')),
-    ("TROOF",  re.compile(r'^(WIN|FAIL)$')),
-    ("TYPE",   re.compile(r'^(NOOB|NUMBR|NUMBAR|YARN|TROOF)$')),
+    ("YARN",   "String Literal",  re.compile(r'^"[^"]*"$')),  # Allows colons (:) and special chars in string literals
+    ("NUMBAR", "Float Literal",   re.compile(r'^-?[0-9]+\.[0-9]+$')),
+    ("NUMBR",  "Integer Literal", re.compile(r'^-?[0-9]+$')),
+    ("TROOF",  "Boolean Literal", re.compile(r'^(WIN|FAIL)$')),
+    ("TYPE",   "Type Literal",    re.compile(r'^(NOOB|NUMBR|NUMBAR|YARN|TROOF)$')),
 ]
 
 # Dictionary for keyword categorization
@@ -36,14 +36,14 @@ KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 
 # =========================================================
 def classify(lexeme):
-    # Classifies a lexeme as a Literal, Keyword, or Identifier 
+    # Classifies a lexeme as a Literal, Keyword, or Identifier
     # Check for comment keywords
     if lexeme in ["BTW", "OBTW", "TLDR"]:
-        return ("Comment Keyword", lexeme)
- 
-    for name, regex in LITERALS:
+        return ("Comment Keyword", "Comment Keyword")
+
+    for name, label, regex in LITERALS:
         if regex.match(lexeme):
-            return (f"Literal ({name})", lexeme)
+            return (f"Literal ({name})", label)
 
     for word, regex in KEYWORD_REGEX:
         if regex.match(lexeme.upper()):
@@ -53,13 +53,13 @@ def classify(lexeme):
             return ("KEYWORD", "Keyword")
 
     if IDENTIFIER.match(lexeme):
-        return ("Identifier", lexeme)
+        return ("Identifier", "Variable Identifier")
 
     # Check if it's comment text content
-    if type(lexeme) is str and not lexeme.startswith('"') and not lexeme.startswith(("HAI", "KTHXBYE")):
-        return ("Comment Text", lexeme)
-    
-    return ("INVALID", None)
+    if isinstance(lexeme, str) and not lexeme.startswith('"') and not lexeme.startswith(("HAI", "KTHXBYE")):
+        return ("Comment Text", "Comment Text")
+
+    return ("INVALID", "Invalid")
 
 # =========================================================
 def read_file(filename):
@@ -178,13 +178,7 @@ def read_lexemes(filename):
     for line_number, line_tokens in tokenized_program:
         for token in line_tokens:
             category, sub_type = classify(token)
-            if category == "KEYWORD":
-                display_category = sub_type
-            elif category.startswith("Literal"):
-                display_category = category
-            else:
-                display_category = category
-
+            display_category = sub_type if sub_type else category
             classified_tokens.append((line_number, token, display_category))
 
     return classified_tokens
