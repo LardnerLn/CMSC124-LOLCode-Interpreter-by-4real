@@ -403,7 +403,21 @@ def parse_expression():
             "value": val,
             "line": line
         }
-
+    if lexeme == '"':
+            advance()  # opening "
+            inner_val = ""
+            curr_inner = current_token()
+            if curr_inner and curr_inner[1] != '"':
+                inner_val = curr_inner[1]
+                print_tree(f"Literal: {inner_val}")
+                advance()
+            match('"')  # closing "
+            return {
+                "type": "LITERAL",
+                "val_type": "YARN",
+                "value": inner_val,
+                "line": line
+            }
     # Identifiers
     if category == "Identifier":
         print_tree(f"Identifier: {lexeme}")
