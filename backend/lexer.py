@@ -37,6 +37,12 @@ KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 # =========================================================
 def classify(lexeme):
     # Classifies a lexeme as a Literal, Keyword, or Identifier
+    if isinstance(lexeme, tuple) and lexeme[0] == "__YARN__":
+        return ("Literal (YARN)", "String Literal")
+
+    if lexeme == '"':
+        return ("String Delimiter", "String Delimiter")
+
     # Check for comment keywords
     if lexeme in ["BTW", "OBTW", "TLDR"]:
         return ("Comment Keyword", "Comment Keyword")
@@ -85,11 +91,17 @@ def tokenize(line):
 
         if line[i] == '"':
             closing_quote = line.find('"', i + 1)
+            tokens.append('"')
             if closing_quote != -1:
-                tokens.append(line[i : closing_quote + 1])
+                inner_text = line[i + 1 : closing_quote]
+                if inner_text != "":
+                    tokens.append(("__YARN__", inner_text))
+                tokens.append('"')
                 i = closing_quote + 1
             else:
-                tokens.append(line[i:])
+                inner_text = line[i + 1 :]
+                if inner_text != "":
+                    tokens.append(("__YARN__", inner_text))
                 break
             continue
 
@@ -134,7 +146,7 @@ def tokenize_code(lines):
     # Tokenizes lines of code and includes comments
     tokenized_program = []
     multiline_comment = False
-    
+
     TLDR_REGEX = re.compile(r'(?<!\S)TLDR(?!\S)')
 
     for line_number, raw_line in enumerate(lines, 1):
@@ -151,7 +163,7 @@ def tokenize_code(lines):
             else:
                 tokenized_program.append((line_number, [stripped_line]))
             continue
- 
+
         if stripped_line.split()[0] == "OBTW":
             line_tokens = ["OBTW"]
             match = TLDR_REGEX.search(stripped_line)
@@ -179,7 +191,8 @@ def read_lexemes(filename):
         for token in line_tokens:
             category, sub_type = classify(token)
             display_category = sub_type if sub_type else category
-            classified_tokens.append((line_number, token, display_category))
+            lexeme_display = token[1] if isinstance(token, tuple) and token[0] == "__YARN__" else token
+            classified_tokens.append((line_number, lexeme_display, display_category))
 
     return classified_tokens
 

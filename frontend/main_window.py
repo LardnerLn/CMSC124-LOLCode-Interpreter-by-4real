@@ -138,8 +138,12 @@ class LOLCodeUI(tk.Tk):
 
                 # Determine display category based on classifier logic
                 for token in line_tokens:
-                    lexeme_str = token[1] if (isinstance(token, tuple) and len(token) > 1) else str(token)
-                    category_type, specific_name = classify(lexeme_str)
+                    category_type, specific_name = classify(token)
+                    lexeme_str = (
+                        token[1]
+                        if (isinstance(token, tuple) and len(token) > 1 and token[0] == "__YARN__")
+                        else str(token)
+                    )
                     
                     display_category = specific_name if specific_name else category_type
                     self.lexemes.add_row(lexeme_str, display_category)
@@ -183,5 +187,3 @@ class LOLCodeUI(tk.Tk):
         self.lexemes.clear()
         self.symbol_table.clear()
         self.console.write("Outputs cleared.\n")
-
-
