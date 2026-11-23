@@ -78,8 +78,6 @@ def to_num(val, node):
 def to_string(val, node, explicit=False):
     # convert value to yarn safely
     if val is None:
-        if not explicit:
-            return ""
         return ""
     if isinstance(val, bool):
         if val == True:
@@ -89,10 +87,7 @@ def to_string(val, node, explicit=False):
     if isinstance(val, int):
         return str(val)
     if isinstance(val, float):
-        s = str(val)
-        if s.endswith(".0"):
-            return s
-        return s
+        return f"{val:.2f}"
     return str(val)
 
 # ========================================
@@ -140,7 +135,7 @@ def eval_expression(expr, symbol_table):
         return expr["value"]
     elif etype == "VARIABLE":
         try: 
-            return get_var_value(symbol_table, expr["name"])  # Fetch variable value
+            return get_var_value(symbol_table, expr["name"]) 
         except Exception as e: 
             raise_my_error(str(e), expr) 
     elif etype == "BIN_OP":

@@ -38,8 +38,10 @@ class ConsolePanel(RoundedPanel):
 
     def prompt_inline_input(self, prompt_text):
         self.text.configure(state="normal")
-        self.text.insert("end", prompt_text)
+        if prompt_text: # Only insert prompt text if non-empty
+            self.text.insert("end", prompt_text)
         self.text.see("end")
+        self.text.focus_set()
 
         self._input_start_index = self.text.index("insert") # Mark prompt end
         self._input_event.clear() # Reset wait signal
@@ -54,6 +56,8 @@ class ConsolePanel(RoundedPanel):
             self._input_value = self.text.get(self._input_start_index, "end-1c")  # Read typed text
             self._input_start_index = None
             self.text.insert("end", "\n")
+            self.text.see("end")
 
             self._input_event.set()  # Resume execution thread
             return "break"           # Prevent extra newline
+        return "break"

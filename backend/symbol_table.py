@@ -25,11 +25,18 @@ def get_var_value(table, name):
         raise Exception("Variable '" + str(name) + "' has not been declared.")
     return table[name]
 
+def format_symbol_value(value):
+    if value is None:  # Represent uninitialized / no-return None as NOOB
+        return "NOOB"  
+    if isinstance(value, bool):  # Check bool before int
+        return "WIN" if value else "FAIL"  # Use WIN/FAIL instead of True/False
+    return str(value)  # Keep standard string representation for other values
+
 def print_symbol_table(table):
     # Prints the contents of the symbol table formatted as a table
     print("\n================ SYMBOL TABLE ================")
     print(f"{'Identifier':<15} | {'Value':<20}")
     print("----------------------------------------------")
     for name, value in table.items():
-        print(f"{str(name):<15} | {str(value):<20}")
+        print(f"{str(name):<15} | {format_symbol_value(value):<20}")
     print("==============================================\n")

@@ -42,4 +42,12 @@ class SymbolTablePanel(RoundedPanel):
         self.table.delete(*self.table.get_children())
 
     def add_row(self, identifier, value):
-        self.table.insert("", "end", values=(identifier, value))
+        if value is None: 
+            display_value = "NOOB"   # Format None as NOOB
+        elif isinstance(value, bool):  # Format bool as WIN or FAIL in GUI
+            display_value = "WIN" if value else "FAIL" 
+        elif isinstance(value, float):
+            display_value = f"{value:.2f}"
+        else:  # Keep other values as is
+            display_value = str(value) 
+        self.table.insert("", "end", values=(identifier, display_value)) 

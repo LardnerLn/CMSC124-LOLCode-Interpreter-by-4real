@@ -177,9 +177,14 @@ class LOLCodeUI(tk.Tk):
 
     def _update_symbol_table(self, executed_table):
         # Populate Symbol Table on GUI thread
-        vars_dict = executed_table.items() if hasattr(executed_table, "items") else executed_table.get_all_variables()
-        for var_name, var_value in vars_dict:
-            display_val = "NOOB" if var_value is None else str(var_value)
+        vars_dict = executed_table.items() if hasattr(executed_table, "items") else executed_table.get_all_variables()  # ✅ Extract symbol table entries
+        for var_name, var_value in vars_dict: 
+            if var_value is None:  # Represent None as NOOB
+                display_val = "NOOB"  
+            elif isinstance(var_value, bool): 
+                display_val = "WIN" if var_value else "FAIL"  # Display TROOF as WIN or FAIL
+            else:  # Handle remaining values (NUMBR, NUMBAR, YARN)
+                display_val = str(var_value)  
             self.symbol_table.add_row(var_name, display_val)
 
     def on_clear(self):
