@@ -139,7 +139,10 @@ def eval_expression(expr, symbol_table):
     if etype == "LITERAL":
         return expr["value"]
     elif etype == "VARIABLE":
-        return get_var_value(symbol_table, expr["name"])
+        try: 
+            return get_var_value(symbol_table, expr["name"])  # Fetch variable value
+        except Exception as e: 
+            raise_my_error(str(e), expr) 
     elif etype == "BIN_OP":
         return eval_binary_op(expr, symbol_table)
     elif etype == "UNARY_OP":
@@ -239,13 +242,18 @@ def call_user_func(expr, symbol_table):
         raise_my_error("Argument count mismatch", expr)
 
     local_symbol_table = create_symbol_table()
-    for i in range(len(params)):
-        declare_var(local_symbol_table, params[i], eval_expression(expr["args"][i], symbol_table))
+    try: 
+        for i in range(len(params)):
+            declare_var(local_symbol_table, params[i], eval_expression(expr["args"][i], symbol_table))
+    except Exception as e:  
+        raise_my_error(str(e), expr) 
 
     fn_res, is_return, is_break = run_block(func_node["body"], local_symbol_table)
-    assign_var(symbol_table, "IT", fn_res)
+    try: 
+        assign_var(symbol_table, "IT", fn_res)  # Store return value (or None/NOOB on GTFO) in IT
+    except Exception as e:  # Catch symbol table error if IT missing
+        raise_my_error(str(e), expr)  
     return fn_res
-
 
 # =========================================================
 # STATEMENTS SECTION
@@ -271,11 +279,19 @@ def run_statement(stmt, symbol_table):
 
     if stype == "ASSIGN":
         val = eval_expression(stmt["expr"], symbol_table)
-        assign_var(symbol_table, stmt["name"], val)
+        try:
+            assign_var(symbol_table, stmt["name"], val)
+        except Exception as e: 
+            raise_my_error(str(e), stmt)
 
     elif stype == "RECAST":
-        current_val = get_var_value(symbol_table, stmt["name"])
-        assign_var(symbol_table, stmt["name"], do_cast(current_val, stmt["target_type"], stmt))
+        try:
+            current_val = get_var_value(symbol_table, stmt["name"])
+            assign_var(symbol_table, stmt["name"], do_cast(current_val, stmt["target_type"], stmt))
+        except InterpreterRuntimeError:  # Preserve existing error line info
+            raise  # Stop loop execution immediately
+        except Exception as e:  
+            raise_my_error(str(e), stmt)  
 
     elif stype == "VISIBLE":
         out_str = ""
@@ -286,11 +302,18 @@ def run_statement(stmt, symbol_table):
         print_func(out_str)
 
     elif stype == "GIMMEH":
-        val_input = str(input_func(stmt["name"] + ": "))
-        assign_var(symbol_table, stmt["name"], val_input)
+        val_input = str(input_func("")) 
+        try: 
+            assign_var(symbol_table, stmt["name"], val_input)  
+        except Exception as e: 
+            raise_my_error(str(e), stmt)
 
     elif stype == "EXPR_STMT":
-        assign_var(symbol_table, "IT", eval_expression(stmt["expr"], symbol_table))
+        val = eval_expression(stmt["expr"], symbol_table) 
+        try:
+            assign_var(symbol_table, "IT", val) 
+        except Exception as e: 
+            raise_my_error(str(e), stmt)
 
     elif stype == "IF_STMT":
         res_val, is_return, is_break = run_if_stmt(stmt, symbol_table)
@@ -318,7 +341,11 @@ def run_statement(stmt, symbol_table):
 
 # ========================================
 def run_if_stmt(stmt, symbol_table):
-    it_val = get_var_value(symbol_table, "IT")
+    try: 
+        it_val = get_var_value(symbol_table, "IT") 
+    except Exception as e:  
+        raise_my_error(str(e), stmt)
+
     if to_bool(it_val):
         return run_block(stmt["then_block"], symbol_table)
 
@@ -330,7 +357,11 @@ def run_if_stmt(stmt, symbol_table):
 
 # ========================================
 def run_switch_stmt(stmt, symbol_table):
-    it_val = get_var_value(symbol_table, "IT")
+    try: 
+        it_val = get_var_value(symbol_table, "IT")  
+    except Exception as e:  
+        raise_my_error(str(e), stmt)
+
     matched = False
     res_val = None
     is_return = False
@@ -367,11 +398,16 @@ def run_loop_stmt(stmt, symbol_table):
         if is_break:
             break
 
-        curr = to_num(get_var_value(symbol_table, var_name), stmt)
-        if stmt["operation"] == "UPPIN":
-            assign_var(symbol_table, var_name, curr + 1)
-        else:
-            assign_var(symbol_table, var_name, curr - 1)
+        try: 
+            curr = to_num(get_var_value(symbol_table, var_name), stmt)  # Read and convert loop counter
+            if stmt["operation"] == "UPPIN":
+                assign_var(symbol_table, var_name, curr + 1)  # Increment loop counter
+            else:
+                assign_var(symbol_table, var_name, curr - 1)  # Decrement loop counter
+        except InterpreterRuntimeError:   # Preserve existing error line info
+            raise  # Stop loop execution immediately
+        except Exception as e: 
+            raise_my_error(str(e), stmt)  
 
     return None, False, False
 
@@ -403,7 +439,10 @@ def interpret_program(ast, output_override=None, input_override=None):
         val = None
         if decl["init"] is not None:
             val = eval_expression(decl["init"], symbol_table)
-        declare_var(symbol_table, decl["name"], val)
+        try:  
+            declare_var(symbol_table, decl["name"], val) 
+        except Exception as e:  
+            raise_my_error(str(e), decl)
 
     run_block(ast["body"], symbol_table)
 
