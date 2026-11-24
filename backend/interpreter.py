@@ -84,7 +84,7 @@ def to_num(val, node):
 def to_string(val, node, explicit=False):
     # convert value to yarn safely
     if val is None:
-        return ""
+        return "NOOB"
     if isinstance(val, bool):
         if val == True:
             return "WIN"

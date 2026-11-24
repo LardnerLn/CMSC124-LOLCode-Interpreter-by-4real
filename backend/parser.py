@@ -262,10 +262,10 @@ def parse_statement():
 # =========================================================
 def parse_visible():
     # <print> ::= VISIBLE <expr> (+ <expr>)*
-    global pos, indent_level
+    global indent_level
     print_tree("<output-statement>")
     indent_level += 1
-    
+
     vis_tok = expect("VISIBLE")
     print_tree("VISIBLE")
     vis_line = vis_tok[0]
@@ -273,33 +273,18 @@ def parse_visible():
 
     args = [parse_expression()]
 
-    while pos < len(tokens):
-        parse_comments()
+    while True:
         curr = current_token()
-
         if not curr or curr[0] != vis_line:
             break
-
-        if curr[1] in ["BUHBYE", "KTHXBYE", "BTW", "OBTW", "TLDR"]:
-            break
-
-        if curr[1] in ["AN", "+"]:
+        if curr[1] == "+":
             advance()
-            if curr[1] == "AN":
-                print_tree("AN")
-            curr = current_token()
-            if not curr or curr[0] != vis_line:
-                break
-
-        cat = curr[2]
-        lex = curr[1]
-        if cat.startswith("Literal") or cat in ["Identifier"] or lex in ["SUM OF", "DIFF OF", "PRODUKT OF", "QUOSHUNT OF", "MOD OF", "BIGGR OF", "SMALLR OF", "SMOOSH", "MAEK", "BOTH OF", "EITHER OF", "WON OF", "NOT", "ALL OF", "ANY OF", "BOTH SAEM", "DIFFRINT", "WIN", "FAIL"]:
+            print_tree("+")
             args.append(parse_expression())
         else:
             break
 
-    indent_level -= 1
-    indent_level -= 1
+    indent_level -= 2
     return {
         "type": "VISIBLE",
         "args": args,
