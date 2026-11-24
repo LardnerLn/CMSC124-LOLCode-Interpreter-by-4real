@@ -11,6 +11,11 @@ TEXT_COLOR = "#2B2B2B"
 FONT = ("Courier", 10)
 
 
+class ConsoleInputCancelled(Exception):
+    # Raised when an active GIMMEH input wait is cancelled by Clear or a new Run
+    pass
+
+
 class ConsolePanel(RoundedPanel):
     def __init__(self, parent):
         super().__init__(parent, TITLE, HEADER_COLOR, title_color=TITLE_COLOR,
@@ -23,19 +28,46 @@ class ConsolePanel(RoundedPanel):
         self._input_value = "" # Stores entered text
         self._input_start_index = None # Input start index (name of the "input_start" mark while waiting)
         self._unlocked = False # True while clear() is running, so it may delete everything
+        self._cancelled = False # True when an active input wait is aborted
 
         self._install_edit_guard()  # Keeps the user from editing console output while typing input
 
         self.text.bind("<Return>", self._on_enter)  # Bind Enter key
         self.text.bind("<KP_Enter>", self._on_enter)  # Numpad Enter behaves the same
 
-    def write(self, message):
+    def _write_on_main(self, message):
         self.text.configure(state="normal")
         self.text.insert("end", message)
         self.text.see("end")
         self.text.configure(state="disabled")
 
+    def _write_from_thread(self, message, done_event):
+        self._write_on_main(message)
+        done_event.set()
+
+    def write(self, message):
+        # Safely update the Text widget on the main GUI thread
+        if threading.current_thread() is threading.main_thread():
+            self._write_on_main(message)
+        else:
+            done_event = threading.Event()
+            self.after(0, self._write_from_thread, message, done_event)
+            done_event.wait()
+
+    def cancel_input(self):
+        # Stop any old background thread waiting on GIMMEH and reset input state
+        self._cancelled = True
+        self._input_value = ""
+        if self._input_start_index is not None:
+            try:
+                self.text.mark_unset(self._input_start_index)
+            except tk.TclError:
+                pass
+            self._input_start_index = None
+        self._input_event.set()
+
     def clear(self):
+        self.cancel_input()
         self._unlocked = True  # Clearing is allowed even while an input prompt is open
         try:
             self.text.configure(state="normal")
@@ -44,7 +76,12 @@ class ConsolePanel(RoundedPanel):
         finally:
             self._unlocked = False
 
-    def prompt_inline_input(self, prompt_text):
+    def _setup_inline_input(self, prompt_text, setup_done=None):
+        if self._cancelled:
+            if setup_done is not None:
+                setup_done.set()
+            return
+
         self.text.configure(state="normal")
         if prompt_text: # Only insert prompt text if non-empty
             self.text.insert("end", prompt_text)
@@ -57,11 +94,25 @@ class ConsolePanel(RoundedPanel):
         self.text.focus_set()
 
         self._input_start_index = "input_start" # Mark prompt end
+        if setup_done is not None:
+            setup_done.set()
+
+    def prompt_inline_input(self, prompt_text):
+        self._cancelled = False
         self._input_event.clear() # Reset wait signal
         self._input_value = "" # Reset value
 
+        # Prepare the inline input prompt on the main GUI thread
+        if threading.current_thread() is threading.main_thread():
+            self._setup_inline_input(prompt_text)
+        else:
+            setup_done = threading.Event()
+            self.after(0, self._setup_inline_input, prompt_text, setup_done)
+            setup_done.wait()
+
         self._input_event.wait() # Pause execution thread
-        self.text.configure(state="disabled")
+        if self._cancelled:
+            raise ConsoleInputCancelled()
         return self._input_value
 
     def _on_enter(self, event):

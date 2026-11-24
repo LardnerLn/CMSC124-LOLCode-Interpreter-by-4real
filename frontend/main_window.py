@@ -7,7 +7,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from button_bar import ButtonBar
-from console_panel import ConsolePanel
+from console_panel import ConsolePanel, ConsoleInputCancelled
 from file_explorer import FileExplorerPanel
 from helpers import BG, FONT, PANEL
 from lexemes_panel import LexemesPanel
@@ -27,6 +27,7 @@ class LOLCodeUI(tk.Tk):
         self.geometry("1344x820")  # Increased height to accommodate button bar comfortably
         self.minsize(960, 640)     # Increased minimum height
         self.configure(bg=BG)
+        self._run_id = 0
         ttk.Style(self).theme_use("clam")
         self._build()
 
@@ -110,6 +111,11 @@ class LOLCodeUI(tk.Tk):
             self.text_editor.open_file(path)
             
     def on_execute(self):
+        # Increment run ID and stop any previous background execution waiting on input
+        self._run_id += 1
+        current_run_id = self._run_id
+        self.console.cancel_input()
+
         # Get code from text editor
         code = self.text_editor.get_code()
         if not code.strip():
@@ -169,23 +175,52 @@ class LOLCodeUI(tk.Tk):
             self.console.write(f"Lexer/Parser Error: {str(e)}\n")
             return
 
+        def _thread_write(message):
+            if self._run_id == current_run_id:
+                self.console.write(message)
+
+        def _thread_input(prompt_text):
+            if self._run_id != current_run_id:
+                raise ConsoleInputCancelled()
+            return self.console.prompt_inline_input(prompt_text)
+
+        def _thread_symbol_table(table_snapshot):
+            if self._run_id == current_run_id:
+                self._schedule_symbol_table_update(table_snapshot)
+
         # 4. Run interpreter in background thread for inline console inputs
         def _run_interpreter_thread():
             try:
                 executed_table = interpret_program(
                     ast, 
-                    output_override=self.console.write,
-                    input_override=self.console.prompt_inline_input  # Direct console typing
+                    output_override=_thread_write,
+                    input_override=_thread_input,  # Direct console typing
+                    symbol_table_override=_thread_symbol_table
                 )
-                self.after(0, lambda: self._update_symbol_table(executed_table))
+                if self._run_id == current_run_id:
+                    self.after(0, self._update_symbol_table, executed_table)
+            except ConsoleInputCancelled:
+                return
             except Exception as e:
-                self.console.write(f"Execution Error: {str(e)}\n")
+                if self._run_id == current_run_id:
+                    self.console.write(f"Execution Error: {str(e)}\n")
 
         threading.Thread(target=_run_interpreter_thread, daemon=True).start()
 
+    def _schedule_symbol_table_update(self, table_snapshot):
+        # Safely queue Symbol Table refresh on the main GUI thread
+        self.after(0, self._update_symbol_table, table_snapshot)
+
     def _update_symbol_table(self, executed_table):
+        # Clear existing rows before repopulating updated Symbol Table values
+        self.symbol_table.clear()
+
         # Populate Symbol Table on GUI thread
-        vars_dict = executed_table.items() if hasattr(executed_table, "items") else executed_table.get_all_variables()  # ✅ Extract symbol table entries
+        if hasattr(executed_table, "items"):
+            vars_dict = executed_table.items()
+        else:
+            vars_dict = executed_table.get_all_variables()
+
         for var_name, var_value in vars_dict: 
             if var_value is None:  # Represent None as NOOB
                 display_val = "NOOB"  
@@ -196,6 +231,7 @@ class LOLCodeUI(tk.Tk):
             self.symbol_table.add_row(var_name, display_val)
 
     def on_clear(self):
+        self._run_id += 1
         self.console.clear()
         self.lexemes.clear()
         self.symbol_table.clear()

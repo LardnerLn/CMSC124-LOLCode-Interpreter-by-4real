@@ -11,6 +11,12 @@ class InterpreterRuntimeError(Exception):
 my_functions = {}
 print_func = print
 input_func = input
+update_table_func = None
+
+def notify_symbol_table(symbol_table):
+    # send a copy of the symbol table to the GUI whenever a variable changes
+    if update_table_func is not None:
+        update_table_func(dict(symbol_table))
 
 def raise_my_error(msg, node=None):
     # raise error with line info
@@ -246,6 +252,7 @@ def call_user_func(expr, symbol_table):
     fn_res, is_return, is_break = run_block(func_node["body"], local_symbol_table)
     try: 
         assign_var(symbol_table, "IT", fn_res)  # Store return value (or None/NOOB on GTFO) in IT
+        notify_symbol_table(symbol_table)
     except Exception as e:  # Catch symbol table error if IT missing
         raise_my_error(str(e), expr)  
     return fn_res
@@ -276,6 +283,7 @@ def run_statement(stmt, symbol_table):
         val = eval_expression(stmt["expr"], symbol_table)
         try:
             assign_var(symbol_table, stmt["name"], val)
+            notify_symbol_table(symbol_table)
         except Exception as e: 
             raise_my_error(str(e), stmt)
 
@@ -283,6 +291,7 @@ def run_statement(stmt, symbol_table):
         try:
             current_val = get_var_value(symbol_table, stmt["name"])
             assign_var(symbol_table, stmt["name"], do_cast(current_val, stmt["target_type"], stmt))
+            notify_symbol_table(symbol_table)
         except InterpreterRuntimeError:  # Preserve existing error line info
             raise  # Stop loop execution immediately
         except Exception as e:  
@@ -299,14 +308,16 @@ def run_statement(stmt, symbol_table):
     elif stype == "GIMMEH":
         val_input = str(input_func("")) 
         try: 
-            assign_var(symbol_table, stmt["name"], val_input)  
+            assign_var(symbol_table, stmt["name"], val_input)
+            notify_symbol_table(symbol_table)
         except Exception as e: 
             raise_my_error(str(e), stmt)
 
     elif stype == "EXPR_STMT":
         val = eval_expression(stmt["expr"], symbol_table) 
         try:
-            assign_var(symbol_table, "IT", val) 
+            assign_var(symbol_table, "IT", val)
+            notify_symbol_table(symbol_table)
         except Exception as e: 
             raise_my_error(str(e), stmt)
 
@@ -399,6 +410,7 @@ def run_loop_stmt(stmt, symbol_table):
                 assign_var(symbol_table, var_name, curr + 1)  # Increment loop counter
             else:
                 assign_var(symbol_table, var_name, curr - 1)  # Decrement loop counter
+            notify_symbol_table(symbol_table)
         except InterpreterRuntimeError:   # Preserve existing error line info
             raise  # Stop loop execution immediately
         except Exception as e: 
@@ -410,8 +422,8 @@ def run_loop_stmt(stmt, symbol_table):
 # =========================================================
 # MAIN PROGRAM INTERPRETER
 # =========================================================
-def interpret_program(ast, output_override=None, input_override=None):
-    global my_functions, print_func, input_func
+def interpret_program(ast, output_override=None, input_override=None, symbol_table_override=None):
+    global my_functions, print_func, input_func, update_table_func
     my_functions = {}
 
     if output_override is not None:
@@ -424,7 +436,10 @@ def interpret_program(ast, output_override=None, input_override=None):
     else:
         input_func = input
 
+    update_table_func = symbol_table_override
+
     symbol_table = create_symbol_table()
+    notify_symbol_table(symbol_table)
 
     for stmt in ast["body"]:
         if stmt["type"] == "FUNC_DEF":
@@ -435,7 +450,8 @@ def interpret_program(ast, output_override=None, input_override=None):
         if decl["init"] is not None:
             val = eval_expression(decl["init"], symbol_table)
         try:  
-            declare_var(symbol_table, decl["name"], val) 
+            declare_var(symbol_table, decl["name"], val)
+            notify_symbol_table(symbol_table)
         except Exception as e:  
             raise_my_error(str(e), decl)
 
