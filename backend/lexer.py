@@ -14,7 +14,11 @@ KEYWORD_CATEGORIES = {
     "Start Code": ["HAI"],
     "End Code": ["KTHXBYE"],
     "Data Type": ["NUMBR", "NUMBAR", "YARN", "TROOF", "NOOB"],
-    "Variable Statement": ["WAZZUP", "BUHBYE", "I HAS A", "ITZ", "R"],
+    # Separate token labels for WAZZUP and BUHBYE instead of sharing Variable Statement
+    "Variable Declaration Start": ["WAZZUP"],
+    "Variable Declaration End": ["BUHBYE"],
+    "Variable Declaration": ["I HAS A"],
+    "Variable Statement": ["ITZ", "R"],
     "I/O Statement": ["VISIBLE", "GIMMEH"],
     "Arithmetic Operator": ["SUM OF", "DIFF OF", "PRODUKT OF", "QUOSHUNT OF", "MOD OF", "BIGGR OF", "SMALLR OF"],
     "Logical Operator": ["BOTH OF", "EITHER OF", "WON OF", "NOT", "ALL OF", "ANY OF"],
@@ -52,7 +56,8 @@ def classify(lexeme):
             return (f"Literal ({name})", label)
 
     for word, regex in KEYWORD_REGEX:
-        if regex.match(lexeme.upper()):
+        # Match exact case so only uppercase keywords are recognized
+        if regex.match(lexeme):
             for category, words in KEYWORD_CATEGORIES.items():
                 if word in words:
                     return ("KEYWORD", category)
