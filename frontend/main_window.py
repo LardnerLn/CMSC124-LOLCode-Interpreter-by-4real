@@ -16,6 +16,7 @@ from text_editor import TextEditorPanel
 
 from backend.lexer import tokenize_code, classify
 from backend.parser import parse
+from backend.sem_analyzer import analyze_semantics, SemanticErrorLOL
 from backend.interpreter import interpret_program
 from backend.symbol_table import create_symbol_table, declare_var, assign_var, get_var_value
 
@@ -152,16 +153,23 @@ class LOLCodeUI(tk.Tk):
                     tokens_for_parser.append((line_num, lexeme_str, category_type))
                     total_tokens += 1
 
-            self.console.write(f"Execution successful. Total tokens found: {total_tokens}\n")
-
             # 2. Syntax Analysis & AST Generation
             ast = parse(tokens_for_parser)
 
+            # 3. Semantic Analysis (every error is reported here, before anything runs)
+            analyze_semantics(ast)
+
+            self.console.write(f"Execution successful. Total tokens found: {total_tokens}\n")
+
+        except SemanticErrorLOL as e:
+            # Semantic messages already carry their own label and line number
+            self.console.write(f"{e}\n")
+            return
         except Exception as e:
             self.console.write(f"Lexer/Parser Error: {str(e)}\n")
             return
 
-        # 3. Run interpreter in background thread for inline console inputs
+        # 4. Run interpreter in background thread for inline console inputs
         def _run_interpreter_thread():
             try:
                 executed_table = interpret_program(
