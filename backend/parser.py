@@ -576,6 +576,9 @@ def parse_expression():
                 args.append(parse_expression())
         indent_level -= 1
 
+        expect("MKAY", "Expected 'MKAY' at the end of function call.")  # require MKAY after end lf func call
+        print_tree("MKAY")  
+
         return {
             "type": "FUNC_CALL",
             "name": func_name,
