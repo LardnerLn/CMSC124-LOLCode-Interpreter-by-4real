@@ -87,7 +87,7 @@ def parse_program():
     indent_level += 1
 
     functions = []
-    # Allow top-level functions declared before HAI 
+    # Allow top-level functions declared before HAI
     while current_token() and peek_lexeme() == "HOW IZ I":
         functions.append(parse_function_definition())
 
@@ -107,6 +107,20 @@ def parse_program():
     expect("KTHXBYE", "Program must end with 'KTHXBYE'.")
     print_tree("KTHXBYE")
 
+    # After KTHXBYE, only comments
+    # parse_comments()) and function definitions are valid
+    while current_token():
+        if peek_lexeme() == "HOW IZ I":
+            body_statements.append(parse_function_definition())
+        else:
+            curr = current_token()
+            line = curr[0] if curr else "EOF"
+            found = curr[1] if curr else "EOF"
+            raise SyntaxErrorLOL(
+                f"Syntax Error on line {line}: Unexpected '{found}' after 'KTHXBYE'. "
+                "Only comments and function definitions ('HOW IZ I') are allowed after 'KTHXBYE'."
+            )
+
     indent_level -= 1
 
     return {
@@ -115,7 +129,6 @@ def parse_program():
         "body": body_statements,
         "line": hai_tok[0]
     }
-
 # =========================================================
 def parse_wazzup_block():
     # <wazzup-sec> ::= WAZZUP <var-declaration>* BUHBYE
