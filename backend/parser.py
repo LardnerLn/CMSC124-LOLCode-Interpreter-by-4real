@@ -20,6 +20,7 @@ pos = 0
 # =========================================================
 # Helper functions for token stream navigation
 def current_token():
+    # Skip comments first before checking current token
     parse_comments()
     if pos < len(tokens):
         return tokens[pos]
@@ -27,6 +28,7 @@ def current_token():
 
 # ========================
 def peek_lexeme():
+    # Look at the text of the current token
     token = current_token()
     if token:
         return token[1]
@@ -34,6 +36,7 @@ def peek_lexeme():
 
 # ========================
 def peek_category():
+    # Look at the category of the current token
     token = current_token()
     if token:
         return token[2]
@@ -41,6 +44,7 @@ def peek_category():
 
 # ========================
 def advance():
+    # Move to the next token and return the current one
     global pos
     token = current_token()
     pos += 1
@@ -48,6 +52,7 @@ def advance():
 
 # ========================
 def match(expected_lexeme):
+    # Consume token only if it matches what we expect
     token = current_token()
     if token and token[1] == expected_lexeme:
         advance()
@@ -56,6 +61,7 @@ def match(expected_lexeme):
 
 # ========================
 def expect(expected_lexeme, error_context=""):
+    # Require a specific token or raise a syntax error
     token = match(expected_lexeme)
     if not token:
         curr = current_token()
@@ -95,9 +101,11 @@ def parse_program():
     print_tree("HAI")
 
     declarations = []
+    # Parse optional WAZZUP variable block if present
     if current_token() and peek_lexeme() == "WAZZUP":
         declarations = parse_wazzup_block()
 
+    # Collect statements until the program ends with KTHXBYE
     body_statements = list(functions)
     while current_token() and peek_lexeme() != "KTHXBYE":
         stmt = parse_statement()
@@ -139,6 +147,7 @@ def parse_wazzup_block():
     expect("WAZZUP", "Expected 'WAZZUP' to start variable declaration section.")
     print_tree("WAZZUP")
 
+    # Read every variable declaration until BUHBYE
     declarations = []
     while current_token() and peek_lexeme() != "BUHBYE":
         decl = parse_var_declaration()
@@ -159,6 +168,7 @@ def parse_var_declaration():
     has_tok = expect("I HAS A", "Variable declaration must start with 'I HAS A'.")
     print_tree("I HAS A")
 
+    # Make sure a valid variable name comes next
     curr = current_token()
     if not curr or curr[2] != "Identifier":
         line = curr[0] if curr else "EOF"
@@ -169,6 +179,7 @@ def parse_var_declaration():
     print_tree(f"Identifier: {var_name}")
     advance()
 
+    # Optional starting value with ITZ
     init_expr = None
     if match("ITZ"):
         print_tree("ITZ")
@@ -193,6 +204,7 @@ def parse_statement():
 
     lexeme = token[1]
 
+    # Route statement based on starting keyword
     if lexeme == "VISIBLE":
         return parse_visible()
     elif lexeme == "GIMMEH":
@@ -206,6 +218,7 @@ def parse_statement():
     elif lexeme == "HOW IZ I":
         return parse_function_definition()
     elif token[2] == "Identifier":
+        # Handle variable reassignment, type recast, or standalone variable
         global indent_level
         print_tree("<assignment>")
         indent_level += 1
@@ -271,8 +284,10 @@ def parse_visible():
     vis_line = vis_tok[0]
     indent_level += 1
 
+    # Parse first printed value
     args = [parse_expression()]
 
+    # Keep reading extra items on the same VISIBLE line
     while True:
         curr = current_token()
         if not curr or curr[0] != vis_line:
@@ -281,7 +296,7 @@ def parse_visible():
                 advance()  # Consume '+'
                 print_tree("+")  
                 args.append(parse_expression())  # Parse next VISIBLE operand
-        elif curr[1] == "AN":  # support 'AN' separator if present on same line
+        elif curr[1] == "AN":  # Support 'AN' separator if present on same line
             advance()  # Consume 'AN'
             print_tree("AN")  
             args.append(parse_expression()) 
@@ -305,6 +320,7 @@ def parse_gimmeh():
     gim_tok = expect("GIMMEH")
     print_tree("GIMMEH")
     
+    # Require a variable name to store user input
     curr = current_token()
     if not curr or curr[2] != "Identifier":
         line = curr[0] if curr else "EOF"
@@ -328,6 +344,7 @@ def parse_comments():
         line, lexeme, category = tokens[pos]
 
         if lexeme == "BTW":
+            # Single-line comment with optional text on the same line
             print_tree("BTW") 
             pos += 1
             if pos < len(tokens) and tokens[pos][0] == line and tokens[pos][1] not in ["BTW", "OBTW", "TLDR"]:
@@ -337,6 +354,7 @@ def parse_comments():
                 pos += 1
 
         elif lexeme == "OBTW":
+            # Multi-line comment block until TLDR
             print_tree("OBTW")  
             pos += 1
             indent_level += 1
@@ -353,6 +371,7 @@ def parse_comments():
         elif lexeme == "TLDR":
             raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'TLDR' found without a matching 'OBTW'.")
         elif category in ["Comment Text"]:
+            # Skip leftover comment text tokens
             pos += 1
         else:
             break
@@ -381,6 +400,7 @@ def parse_expression():
         val_type = "YARN"
         val = lexeme
 
+        # Convert literal text into its matching Python type
         if "NUMBR" in category:
             val_type = "NUMBR"
             val = int(lexeme) if lexeme.lstrip("-").isdigit() else lexeme
@@ -404,14 +424,15 @@ def parse_expression():
             "line": line
         }
     if lexeme == '"':
-            advance()  # opening "
+            # Read quoted string pieces between opening and closing quotes
+            advance()  # Opening "
             inner_val = ""
             curr_inner = current_token()
             if curr_inner and curr_inner[1] != '"':
                 inner_val = curr_inner[1]
                 print_tree(f"Literal: {inner_val}")
                 advance()
-            match('"')  # closing "
+            match('"')  # Closing "
             return {
                 "type": "LITERAL",
                 "val_type": "YARN",
@@ -488,6 +509,7 @@ def parse_expression():
         expect("AN", f"Expected 'AN' in {op_name} clause.")
         print_tree("AN")
         args.append(parse_expression())
+        # Allow extra operands separated by AN until MKAY closes it
         while match("AN"):
             print_tree("AN")
             args.append(parse_expression())
@@ -529,6 +551,7 @@ def parse_expression():
         expect("AN", "Expected 'AN' after first SMOOSH operand.")
         print_tree("AN")
         args.append(parse_expression())
+        # Collect any additional parts joined with AN
         while match("AN"):
             print_tree("AN")
             args.append(parse_expression())
@@ -567,6 +590,7 @@ def parse_expression():
         print_tree(f"Function Name: {func_name}")
         advance()
         
+        # Parse optional arguments passed after YR
         args = []
         indent_level += 1
         if match("YR"):
@@ -578,7 +602,7 @@ def parse_expression():
                 args.append(parse_expression())
         indent_level -= 1
 
-        expect("MKAY", "Expected 'MKAY' at the end of function call.")  # require MKAY after end lf func call
+        expect("MKAY", "Expected 'MKAY' at the end of function call.")  # Require MKAY after end of func call
         print_tree("MKAY")  
 
         return {
@@ -592,6 +616,7 @@ def parse_expression():
 
 # =========================================================
 def parse_if_statement():
+    # Parse O RLY? conditional block with YA RLY, MEBBE, and NO WAI
     global indent_level
     print_tree("<if-statement>")
     indent_level += 1
@@ -601,6 +626,7 @@ def parse_if_statement():
     expect("YA RLY", "Expected 'YA RLY' after 'O RLY?'.")
     print_tree("YA RLY")
 
+    # Main true branch statements
     then_block = []
     indent_level += 1
     while current_token() and peek_lexeme() not in ["MEBBE", "NO WAI", "OIC"]:
@@ -609,6 +635,7 @@ def parse_if_statement():
             then_block.append(stmt)
     indent_level -= 1
 
+    # Optional else-if branches
     mebbe_blocks = []
     while peek_lexeme() == "MEBBE":
         advance()
@@ -623,6 +650,7 @@ def parse_if_statement():
         mebbe_blocks.append((cond_expr, m_block))
         indent_level -= 1
 
+    # Optional fallback else branch
     else_block = []
     if match("NO WAI"):
         print_tree("NO WAI")
@@ -646,6 +674,7 @@ def parse_if_statement():
 
 # =========================================================
 def parse_switch_statement():
+    # Parse WTF? switch block with OMG cases and optional OMGWTF default
     global indent_level
     print_tree("<switch-statement>")
     indent_level += 1
@@ -653,6 +682,7 @@ def parse_switch_statement():
     sw_tok = expect("WTF?")
     print_tree("WTF?")
 
+    # Collect each OMG case and its statements
     cases = []
     while peek_lexeme() == "OMG":
         advance()
@@ -672,6 +702,7 @@ def parse_switch_statement():
         cases.append((case_val, case_block))
         indent_level -= 1
 
+    # Optional default branch when no case matches
     default_block = []
     if match("OMGWTF"):
         print_tree("OMGWTF Default")
@@ -699,6 +730,7 @@ def parse_switch_statement():
 
 # =========================================================
 def parse_loop_statement():
+    # Parse IM IN YR loop header, condition, body, and matching end label
     global indent_level
     print_tree("<loop-statement>")
     indent_level += 1
@@ -706,6 +738,7 @@ def parse_loop_statement():
     loop_tok = expect("IM IN YR")
     print_tree("IM IN YR")
     
+    # Read loop label name
     loop_label_token = current_token()
     if not loop_label_token or loop_label_token[2] != "Identifier":
         raise SyntaxErrorLOL(f"Syntax Error on line {loop_label_token[0]}: Expected loop label identifier.")
@@ -714,12 +747,14 @@ def parse_loop_statement():
     print_tree(f"Label: {loop_label}")
     advance()
 
+    # Check whether loop counts up or down
     op = peek_lexeme()
     if op not in ["UPPIN", "NERFIN"]:
         raise SyntaxErrorLOL(f"Syntax Error on line {loop_label_token[0]}: Expected 'UPPIN' or 'NERFIN' in loop operation.")
     print_tree(f"Operation: {op}")
     advance()
 
+    # Read loop counter variable after YR
     expect("YR", "Expected 'YR' after loop operation.")
     var_token = current_token()
     if not var_token or var_token[2] != "Identifier":
@@ -728,6 +763,7 @@ def parse_loop_statement():
     print_tree(f"Loop Var: {var_name}")
     advance()
 
+    # Read TIL or WILE stop condition
     cond_type = peek_lexeme()
     if cond_type not in ["TIL", "WILE"]:
         raise SyntaxErrorLOL(f"Syntax Error on line {var_token[0]}: Expected 'TIL' or 'WILE' loop condition.")
@@ -737,6 +773,7 @@ def parse_loop_statement():
     indent_level += 1
     cond_expr = parse_expression()
     
+    # Parse statements inside the loop body
     body = []
     while current_token() and peek_lexeme() != "IM OUTTA YR":
         stmt = parse_statement()
@@ -744,6 +781,7 @@ def parse_loop_statement():
             body.append(stmt)
     indent_level -= 1
 
+    # Match closing IM OUTTA YR label with opening label
     expect("IM OUTTA YR", "Expected 'IM OUTTA YR' to end loop.")
     end_label_token = current_token()
     if not end_label_token or end_label_token[1] != loop_label:
@@ -765,6 +803,7 @@ def parse_loop_statement():
 
 # =========================================================
 def parse_function_definition():
+    # Parse HOW IZ I function name, parameters, body, and IF U SAY SO
     global indent_level
     print_tree("<function-definition>")
     indent_level += 1
@@ -772,6 +811,7 @@ def parse_function_definition():
     fn_tok = expect("HOW IZ I")
     print_tree("HOW IZ I")
 
+    # Read function name
     func_token = current_token()
     if not func_token or func_token[2] != "Identifier":
         raise SyntaxErrorLOL(f"Syntax Error on line {func_token[0]}: Expected function name identifier.")
@@ -779,6 +819,7 @@ def parse_function_definition():
     print_tree(f"Function Name: {func_name}")
     advance()
 
+    # Collect optional parameter names after YR and AN YR
     params = []
     if match("YR"):
         p_token = current_token()
@@ -797,6 +838,7 @@ def parse_function_definition():
             print_tree(f"Parameter: {p_token[1]}")
             advance()
 
+    # Parse function body statements, including FOUND YR and GTFO
     body = []
     indent_level += 1
     while current_token() and peek_lexeme() != "IF U SAY SO":

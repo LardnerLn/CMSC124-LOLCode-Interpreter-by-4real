@@ -29,18 +29,22 @@ KEYWORD_CATEGORIES = {
     "Function Statement": ["HOW IZ I", "IF U SAY SO", "FOUND YR", "I IZ"],
 }
 
+# Flatten all keyword categories into one list
 KEYWORDS = []
 for words in KEYWORD_CATEGORIES.values():
     KEYWORDS.extend(words)
+# Add extra markers and separators used in the language
 KEYWORDS.extend(["BTW", "OBTW", "TLDR", "MKAY", "AN", "+"])
 
 KEYWORD_REGEX = [(word, re.compile("^" + re.escape(word) + "$")) for word in KEYWORDS]
 IDENTIFIER = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
+# Check longer keywords first so multi-word ones match before shorter parts
 KEYWORDS_SORTED = sorted(KEYWORDS, key=len, reverse=True)
 
 # =========================================================
 def classify(lexeme):
     # Classifies a lexeme as a Literal, Keyword, or Identifier
+    # Handle internal yarn tuple marker
     if isinstance(lexeme, tuple) and lexeme[0] == "__YARN__":
         return ("Literal (YARN)", "String Literal")
 
@@ -51,6 +55,7 @@ def classify(lexeme):
     if lexeme in ["BTW", "OBTW", "TLDR"]:
         return ("Comment Keyword", "Comment Keyword")
 
+    # Check literal patterns like numbers and booleans
     for name, label, regex in LITERALS:
         if regex.match(lexeme):
             return (f"Literal ({name})", label)
@@ -63,6 +68,7 @@ def classify(lexeme):
                     return ("KEYWORD", category)
             return ("KEYWORD", "Keyword")
 
+    # Check valid variable/function names
     if IDENTIFIER.match(lexeme):
         return ("Identifier", "Variable Identifier")
 
@@ -70,6 +76,7 @@ def classify(lexeme):
     if isinstance(lexeme, str) and not lexeme.startswith('"') and not lexeme.startswith(("HAI", "KTHXBYE")):
         return ("Comment Text", "Comment Text")
 
+    # Anything else is not a valid token
     return ("INVALID", "Invalid")
 
 # =========================================================
@@ -78,6 +85,7 @@ def read_file(filename):
     lines = []
     with open(filename, "r") as file:
         for line in file:
+            # Remove trailing newline so line text stays clean
             lines.append(line.rstrip("\n"))
     return lines
 
@@ -90,10 +98,12 @@ def tokenize(line):
     line_length = len(line)
 
     while i < line_length:
+        # Skip spaces between tokens
         if line[i].isspace():
             i += 1
             continue
 
+        # Keep quoted strings together even with spaces inside
         if line[i] == '"':
             closing_quote = line.find('"', i + 1)
             tokens.append('"')
@@ -104,12 +114,14 @@ def tokenize(line):
                 tokens.append('"')
                 i = closing_quote + 1
             else:
+                # Handle unclosed quote till end of line
                 inner_text = line[i + 1 :]
                 if inner_text != "":
                     tokens.append(("__YARN__", inner_text))
                 break
             continue
 
+        # Treat rest of line after comment keyword as comment text
         is_comment = False
         for comment_kw in ["OBTW", "TLDR", "BTW"]:
             kw_len = len(comment_kw)
@@ -125,6 +137,7 @@ def tokenize(line):
         if is_comment:
             break
 
+        # Match keywords only on whole token boundaries
         matched_keyword = None
         for keyword in KEYWORDS_SORTED:
             kw_len = len(keyword)
@@ -139,6 +152,7 @@ def tokenize(line):
             i += len(matched_keyword)
             continue
 
+        # Grab remaining word or symbol as one chunk
         start_index = i
         while i < line_length and not line[i].isspace():
             i += 1
@@ -152,6 +166,7 @@ def tokenize_code(lines):
     tokenized_program = []
     multiline_comment = False
 
+    # Match standalone TLDR surrounded by spaces or line edges
     TLDR_REGEX = re.compile(r'(?<!\S)TLDR(?!\S)')
 
     for line_number, raw_line in enumerate(lines, 1):
@@ -159,6 +174,7 @@ def tokenize_code(lines):
         if not stripped_line:
             continue
 
+        # Stay inside multi-line comment until TLDR is seen
         if multiline_comment:
             match = TLDR_REGEX.search(stripped_line)
             if match:
@@ -169,6 +185,7 @@ def tokenize_code(lines):
                 tokenized_program.append((line_number, [stripped_line]))
             continue
 
+        # Start multi-line comment when line begins with OBTW
         if stripped_line.split()[0] == "OBTW":
             line_tokens = ["OBTW"]
             match = TLDR_REGEX.search(stripped_line)
@@ -179,6 +196,7 @@ def tokenize_code(lines):
             tokenized_program.append((line_number, line_tokens))
             continue
 
+        # Normal single-line code tokenization
         line_tokens = tokenize(raw_line)
         if line_tokens:
             tokenized_program.append((line_number, line_tokens))
@@ -195,6 +213,7 @@ def read_lexemes(filename):
     for line_number, line_tokens in tokenized_program:
         for token in line_tokens:
             category, sub_type = classify(token)
+            # Prefer specific sub-type label when available
             display_category = sub_type if sub_type else category
             lexeme_display = token[1] if isinstance(token, tuple) and token[0] == "__YARN__" else token
             classified_tokens.append((line_number, lexeme_display, display_category))

@@ -9,9 +9,11 @@ class SemanticErrorLOL(Exception):
 declared_vars = set()
 declared_functions = {}
 
+# =========================================================
 def analyze_semantics(ast):
     # Main entry point to validate the program AST
     global declared_vars, declared_functions
+    # Pre-load IT since LOLCODE uses it implicitly
     declared_vars = set(["IT"])
     declared_functions = {}
 
@@ -28,12 +30,14 @@ def analyze_semantics(ast):
     for stmt in body_statements:
         analyze_statement(stmt, local_scope=None)
 
+# =========================================================
 def analyze_var_decl(decl):
     # Validates a single variable declaration
     global declared_vars
     line = decl.get("line", "Unknown")
     var_name = decl.get("name")
 
+    # Catch duplicate variable names early
     if var_name in declared_vars:
         raise SemanticErrorLOL("Semantic Error on line " + str(line) + ": Variable '" + str(var_name) + "' is already declared.")
 
@@ -44,6 +48,7 @@ def analyze_var_decl(decl):
     if init_expr:
         analyze_expression(init_expr, local_scope=None)
 
+# =========================================================
 def analyze_statement(stmt, local_scope=None):
     # Checks statement types and validates child expressions or sub-blocks
     if not stmt:
@@ -73,6 +78,7 @@ def analyze_statement(stmt, local_scope=None):
         analyze_expression(stmt.get("expr"), local_scope)
 
     elif stmt_type == "IF_STMT":
+        # Check statements in if, else-if, and else blocks
         for stmt_in_then in stmt.get("then_block", []):
             analyze_statement(stmt_in_then, local_scope)
 
@@ -85,6 +91,7 @@ def analyze_statement(stmt, local_scope=None):
             analyze_statement(stmt_in_else, local_scope)
 
     elif stmt_type == "SWITCH_STMT":
+        # Check switch cases and default block
         for case_val_node, case_block in stmt.get("cases", []):
             analyze_expression(case_val_node, local_scope)
             for stmt_in_c in case_block:
@@ -104,6 +111,7 @@ def analyze_statement(stmt, local_scope=None):
         func_name = stmt.get("name")
         params = stmt.get("params", [])
 
+        # Prevent defining two functions with the same name
         if func_name in declared_functions:
             raise SemanticErrorLOL("Semantic Error on line " + str(line) + ": Function '" + str(func_name) + "' is already defined.")
 
@@ -123,6 +131,7 @@ def analyze_statement(stmt, local_scope=None):
     elif stmt_type == "GTFO":
         pass
 
+# =========================================================
 def analyze_expression(expr, local_scope=None):
     # Checks expressions for valid variables, operators, and functions
     if not expr:
@@ -169,9 +178,11 @@ def analyze_expression(expr, local_scope=None):
         func_name = expr.get("name")
         args = expr.get("args", [])
 
+        # Make sure function exists before checking arguments
         if func_name not in declared_functions:
             raise SemanticErrorLOL("Semantic Error on line " + str(line) + ": Call to undefined function '" + str(func_name) + "'.")
 
+        # Check that argument count matches function parameters
         expected_count = declared_functions[func_name]
         if len(args) != expected_count:
             raise SemanticErrorLOL("Semantic Error on line " + str(line) + ": Function '" + str(func_name) + "' expects " + str(expected_count) + " arguments, got " + str(len(args)) + ".")
@@ -179,6 +190,7 @@ def analyze_expression(expr, local_scope=None):
         for arg in args:
             analyze_expression(arg, local_scope)
 
+# =========================================================
 def check_variable_declared(name, line, local_scope=None):
     # Verifies that a variable is declared in either local or global scope
     if local_scope is not None:
