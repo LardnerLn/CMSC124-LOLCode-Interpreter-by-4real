@@ -168,6 +168,7 @@ def tokenize_code(lines):
 
     # Match standalone TLDR surrounded by spaces or line edges
     TLDR_REGEX = re.compile(r'(?<!\S)TLDR(?!\S)')
+    TLDR_START = re.compile(r'^TLDR(?!\S)') # inside a block, only a line that STARTS with TLDR closes it
 
     for line_number, raw_line in enumerate(lines, 1):
         stripped_line = raw_line.strip()
@@ -176,7 +177,7 @@ def tokenize_code(lines):
 
         # Stay inside multi-line comment until TLDR is seen
         if multiline_comment:
-            match = TLDR_REGEX.search(stripped_line)
+            match = TLDR_START.match(stripped_line)
             if match:
                 multiline_comment = False
                 line_tokens = ["TLDR"] + tokenize(stripped_line[match.end():])
