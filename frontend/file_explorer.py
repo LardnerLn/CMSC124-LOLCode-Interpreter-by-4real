@@ -1,6 +1,7 @@
 # File Explorer panel. Edit only this file to change this panel.
 import os
-from tkinter import PhotoImage, filedialog, ttk
+import tkinter as tk
+from tkinter import PhotoImage, messagebox, ttk
 
 from rounded_panel import RoundedPanel
 
@@ -13,6 +14,118 @@ TEXT_COLOR = "#2B2B2B"
 SELECT_COLOR = "#C9BE9C"
 FONT = ("Helvetica", 8, "bold")
 SHOW_HIDDEN = False  # set True to also list files/folders starting with "."
+
+
+def _list_folder(path):
+    # Sub-folders first, then files (hidden ones skipped unless SHOW_HIDDEN). Raises OSError.
+    entries = [e for e in os.scandir(path)
+               if SHOW_HIDDEN or not e.name.startswith(".")]
+    entries.sort(key=lambda e: (not e.is_dir(), e.name.lower()))
+    return entries
+
+
+class _OpenDialog(tk.Toplevel):
+    # Small "Open" window: click a file OR a folder, then press Open.
+    # A folder never has to be entered just to pick it; double-click a folder to look inside it.
+    def __init__(self, parent, start_dir, folder_icon, file_icon):
+        super().__init__(parent)
+        self.title("Open a file or folder")
+        self.transient(parent)
+        self.minsize(320, 240)
+        self.geometry(f"420x380+{parent.winfo_rootx() + 60}+{parent.winfo_rooty() + 60}")
+
+        self.result = None        # (full path, is_folder) once the user presses Open
+        self._folder_icon = folder_icon
+        self._file_icon = file_icon
+        self._items = {}          # tree item id -> (full path, is_folder)
+        self._current = None      # folder currently listed
+
+        top = ttk.Frame(self)
+        top.pack(fill="x", padx=8, pady=(8, 4))
+        ttk.Button(top, text="Up", width=4, command=self._go_up).pack(side="left")
+        self._path_var = tk.StringVar()
+        ttk.Entry(top, textvariable=self._path_var, state="readonly").pack(
+            side="left", fill="x", expand=True, padx=(6, 0))
+
+        middle = ttk.Frame(self)
+        middle.pack(fill="both", expand=True, padx=8, pady=4)
+        scroll = ttk.Scrollbar(middle, orient="vertical")
+        self.tree = ttk.Treeview(middle, style="Explorer.Treeview", show="tree",
+                                 selectmode="browse", yscrollcommand=scroll.set)
+        scroll.config(command=self.tree.yview)
+        scroll.pack(side="right", fill="y")
+        self.tree.pack(side="left", fill="both", expand=True)
+
+        bottom = ttk.Frame(self)
+        bottom.pack(fill="x", padx=8, pady=(4, 8))
+        ttk.Button(bottom, text="Cancel", command=self._cancel).pack(side="right")
+        ttk.Button(bottom, text="Open", command=self._open_selected).pack(side="right", padx=(0, 6))
+        ttk.Label(bottom, text="Select a file or folder, then press Open").pack(side="left")
+
+        self.tree.bind("<Double-1>", self._on_double_click)
+        self.bind("<Return>", lambda _e: self._open_selected())
+        self.bind("<Escape>", lambda _e: self._cancel())
+        self.protocol("WM_DELETE_WINDOW", self._cancel)
+
+        self._show_folder(start_dir)
+
+    def show(self):
+        # Run the window until it is closed. Returns (path, is_folder), or None if cancelled.
+        self.wait_visibility()
+        self.grab_set()
+        self.tree.focus_set()
+        self.wait_window(self)
+        return self.result
+
+    def _show_folder(self, path):
+        path = os.path.abspath(path)
+        try:
+            entries = _list_folder(path)
+        except OSError as err:
+            messagebox.showerror("Cannot open folder", str(err), parent=self)
+            return
+        self._current = path
+        self._path_var.set(path)
+        self.tree.delete(*self.tree.get_children())
+        self._items.clear()
+        for entry in entries:
+            is_folder = entry.is_dir()
+            iid = self.tree.insert("", "end", text=f" {entry.name}",
+                                   image=self._folder_icon if is_folder else self._file_icon)
+            self._items[iid] = (entry.path, is_folder)
+
+    def _go_up(self):
+        parent = os.path.dirname(self._current)
+        if parent and parent != self._current:
+            self._show_folder(parent)
+
+    def _selected(self):
+        sel = self.tree.selection()
+        return self._items.get(sel[0]) if sel else None
+
+    def _open_selected(self):
+        # Whatever is selected is opened as it is; with nothing selected, the folder being listed.
+        self._finish(self._selected() or (self._current, True))
+
+    def _on_double_click(self, event):
+        iid = self.tree.identify_row(event.y)
+        if not iid:
+            return
+        path, is_folder = self._items[iid]
+        if is_folder:
+            self._show_folder(path)      # look inside the folder
+        else:
+            self._finish((path, False))  # double-clicking a file opens it
+        return "break"
+
+    def _cancel(self):
+        self._finish(None)
+
+    def _finish(self, result):
+        self.result = result
+        self.grab_release()
+        self.destroy()
+
 
 class FileExplorerPanel(RoundedPanel):
     def __init__(self, parent):
@@ -41,6 +154,8 @@ class FileExplorerPanel(RoundedPanel):
         self.root_dir = None     # currently opened directory
         self._paths = {}         # tree item id -> full path
         self._loaded = set()     # folder item ids whose contents are loaded
+        self.on_file_chosen = None  # set by the main window: called with a picked file's path,
+                                    # returns True if the file was opened in the editor
 
         # Plus button (drawn by RoundedPanel in the header): click + hover
         self.bind("<Button-1>", self._on_canvas_click, add="+")
@@ -57,16 +172,34 @@ class FileExplorerPanel(RoundedPanel):
 
     def _on_canvas_click(self, event):
         if self._over_plus(event):
-            self.choose_directory()
+            self.choose_path()
 
-    # opening a directory
-    def choose_directory(self):
-        # Open the system file explorer and let the user pick a directory.
-        path = filedialog.askdirectory(parent=self.winfo_toplevel(),
-                                       title="Select a folder to open",
-                                       mustexist=True)
-        if path:  # empty string means the user cancelled
+    # opening a file or a directory
+    def choose_path(self):
+        # Let the user pick a file or a folder: select it, then press Open.
+        start = self.root_dir if self.root_dir and os.path.isdir(self.root_dir) \
+            else os.path.expanduser("~")
+        picked = _OpenDialog(self.winfo_toplevel(), start,
+                             self.folder_icon, self.file_icon).show()
+        if not picked:  # cancelled
+            return
+        path, is_folder = picked
+        if is_folder:
             self.open_directory(path)
+            return
+        if self.on_file_chosen is not None and not self.on_file_chosen(path):
+            return  # the editor did not open it (cancelled or error): leave the tree alone
+        self.open_directory(os.path.dirname(path))  # show the picked file's folder
+        self._select_path(path)
+
+    def _select_path(self, path):
+        # Highlight the tree item for this file, if it is listed.
+        target = os.path.normcase(os.path.normpath(path))
+        for iid, item_path in self._paths.items():
+            if os.path.normcase(os.path.normpath(item_path)) == target:
+                self.tree.selection_set(iid)
+                self.tree.see(iid)
+                return
 
     def open_directory(self, path):
         path = os.path.normpath(path)
