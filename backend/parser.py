@@ -343,17 +343,20 @@ def parse_comments():
     while pos < len(tokens):
         line, lexeme, category = tokens[pos]
 
-        if lexeme == "BTW":
+        if category == "Comment Keyword" and lexeme == "BTW":
             # Single-line comment with optional text on the same line
             print_tree("BTW") 
             pos += 1
-            if pos < len(tokens) and tokens[pos][0] == line and tokens[pos][1] not in ["BTW", "OBTW", "TLDR"]:
-                indent_level += 1
+            if pos < len(tokens) and tokens[pos][0] == line:      # rest of line is one comment token, take it as-is
+                indent_level += 1   
                 print_tree(f"Comment: {tokens[pos][1]}")
                 indent_level -= 1
                 pos += 1
 
-        elif lexeme == "OBTW":
+        elif category == "Comment Keyword" and lexeme == "OBTW":
+            if pos > 0 and tokens[pos - 1][0] == line:            # OBTW must be first on its line
+                raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'OBTW' must be on its own line; it cannot follow a statement.")
+
             # Multi-line comment block until TLDR
             print_tree("OBTW")  
             pos += 1
@@ -364,11 +367,14 @@ def parse_comments():
             indent_level -= 1
             
             if pos < len(tokens) and tokens[pos][1] == "TLDR":
+                tldr_line = tokens[pos][0]
                 print_tree("TLDR")  
                 pos += 1
+                if pos < len(tokens) and tokens[pos][0] == tldr_line and tokens[pos][1] != "BTW":
+                    raise SyntaxErrorLOL(f"Syntax Error on line {tldr_line}: 'TLDR' must be on its own line; only a BTW comment may follow it.")
             else:
                 raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'OBTW' has no closing 'TLDR'.")
-        elif lexeme == "TLDR":
+        elif category == "Comment Keyword" and lexeme == "TLDR":
             raise SyntaxErrorLOL(f"Syntax Error on line {line}: 'TLDR' found without a matching 'OBTW'.")
         elif category in ["Comment Text"]:
             # Skip leftover comment text tokens
