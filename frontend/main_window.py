@@ -89,6 +89,7 @@ class LOLCodeUI(tk.Tk):
         self.text_editor.grid(row=0, column=1, sticky="nsew", padx=(0, 12), pady=(0, 12))
 
         self.file_explorer.tree.bind("<Double-1>", self._on_file_double_click)
+        self.file_explorer.on_file_chosen = self.text_editor.open_file  # files picked/created in the explorer load into the editor
 
         right = tk.Frame(main, bg=BG)
         right.grid(row=0, column=2, sticky="nsew", pady=(0, 12))

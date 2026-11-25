@@ -1,7 +1,7 @@
 # File Explorer panel. Edit only this file to change this panel.
 import os
 import tkinter as tk
-from tkinter import PhotoImage, messagebox, ttk
+from tkinter import PhotoImage, messagebox, simpledialog, ttk
 
 from rounded_panel import RoundedPanel
 
@@ -13,7 +13,11 @@ BODY_COLOR = "#DFD6BB"
 TEXT_COLOR = "#2B2B2B"
 SELECT_COLOR = "#C9BE9C"
 FONT = ("Helvetica", 8, "bold")
+MENU_FONT = ("Helvetica", 12, "bold")
 SHOW_HIDDEN = False  # set True to also list files/folders starting with "."
+DEFAULT_NEW_NAME = "untitled.lol"
+DEFAULT_EXTENSION = ".lol"
+FALLBACK_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def _list_folder(path):
@@ -157,6 +161,13 @@ class FileExplorerPanel(RoundedPanel):
         self.on_file_chosen = None  # set by the main window: called with a picked file's path,
                                     # returns True if the file was opened in the editor
 
+        # Dropdown shown when the plus button is clicked: Open / New
+        self.plus_menu = tk.Menu(self, tearoff=0, bg=BODY_COLOR, fg=TEXT_COLOR,
+                                 activebackground=SELECT_COLOR, activeforeground=TEXT_COLOR,
+                                 font=MENU_FONT, bd=0, relief="flat")
+        self.plus_menu.add_command(label="Open", command=self.choose_path)
+        self.plus_menu.add_command(label="New", command=self._on_new)
+
         # Plus button (drawn by RoundedPanel in the header): click + hover
         self.bind("<Button-1>", self._on_canvas_click, add="+")
         self.bind("<Motion>", self._on_canvas_motion, add="+")
@@ -172,7 +183,59 @@ class FileExplorerPanel(RoundedPanel):
 
     def _on_canvas_click(self, event):
         if self._over_plus(event):
-            self.choose_path()
+            self._show_plus_menu()
+
+    def _show_plus_menu(self):
+        # Drop the menu down just below the plus button.
+        x = self.winfo_rootx() + self.winfo_width() - 26 - 9
+        y = self.winfo_rooty() + 4 + int(self.header_h / 2) + 9
+        try:
+            self.plus_menu.tk_popup(x, y)
+        finally:
+            self.plus_menu.grab_release()
+
+    def _on_new(self):
+        # Create an empty file in the opened folder (or the project folder if none is open),
+        # load it into the editor, and show it in the tree.
+        parent = self.winfo_toplevel()
+        folder = self.root_dir if self.root_dir and os.path.isdir(self.root_dir) else FALLBACK_DIR
+
+        name = DEFAULT_NEW_NAME
+        while True:
+            name = simpledialog.askstring("New file", f"File name (created in {folder}):",
+                                          initialvalue=name, parent=parent)
+            if name is None:  # cancelled
+                return
+            name = name.strip()
+            if not name or name in (".", "..") or any(c in name for c in ("/", "\\")):
+                messagebox.showerror("Invalid name",
+                                     "Enter a file name only (no slashes).", parent=parent)
+                name = DEFAULT_NEW_NAME
+                continue
+            if not os.path.splitext(name)[1]:
+                name += DEFAULT_EXTENSION
+            path = os.path.join(folder, name)
+            if os.path.exists(path):
+                messagebox.showerror("File exists",
+                                     f"'{name}' already exists in this folder.", parent=parent)
+                continue
+            break
+
+        try:
+            open(path, "x", encoding="utf-8").close()  # "x" never overwrites an existing file
+        except OSError as err:
+            messagebox.showerror("Cannot create file", str(err), parent=parent)
+            return
+
+        if self.on_file_chosen is not None and not self.on_file_chosen(path):
+            try:
+                os.remove(path)  # editor did not open it (e.g. unsaved-changes prompt cancelled)
+            except OSError:
+                pass
+            return
+
+        self.open_directory(folder)
+        self._select_path(path)
 
     # opening a file or a directory
     def choose_path(self):
