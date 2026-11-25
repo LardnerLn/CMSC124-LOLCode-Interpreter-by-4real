@@ -277,10 +277,14 @@ def parse_visible():
         curr = current_token()
         if not curr or curr[0] != vis_line:
             break
-        if curr[1] == "+":
-            advance()
-            print_tree("+")
-            args.append(parse_expression())
+        if curr[1] == "+":  
+                advance()  # Consume '+'
+                print_tree("+")  
+                args.append(parse_expression())  # Parse next VISIBLE operand
+        elif curr[1] == "AN":  # support 'AN' separator if present on same line
+            advance()  # Consume 'AN'
+            print_tree("AN")  
+            args.append(parse_expression()) 
         else:
             break
 
@@ -365,13 +369,11 @@ def parse_expression():
 
     line, lexeme, category = curr[0], curr[1], curr[2]
 
-    if lexeme == "+":
-        advance()
-        curr = current_token()
-        if not curr:
-            raise SyntaxErrorLOL(f"Syntax Error on line {line}: Unexpected end of line after '+'.")
-        line, lexeme, category = curr[0], curr[1], curr[2]
-
+    if lexeme == "+":  # Reject '+' outside VISIBLE statements
+        raise SyntaxErrorLOL( 
+            f"Syntax Error on line {line}: '+' is only allowed in VISIBLE; use SMOOSH for string concatenation."  
+        )
+    
     # Literals
     if category.startswith("Literal") or lexeme in ["WIN", "FAIL"]:
         print_tree(f"Literal: {lexeme}")
